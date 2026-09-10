@@ -23,6 +23,18 @@ export default defineEventHandler(async (event) => {
 
   for (const ev of body.events ?? []) {
     const source = ev?.source ?? {}
+
+    // 使用者把官方帳號加為好友。這是一對一情境，沒有 groupId，
+    // 所以要在取 chatId 之前處理，否則會被下面的 continue 跳掉。
+    if (ev.type === 'follow' && ev.replyToken) {
+      try {
+        await replyMessage(ev.replyToken, [welcomeMessage('follow')])
+      } catch {
+        // 打招呼失敗不需要中斷其他事件的處理
+      }
+      continue
+    }
+
     const chatId: string | undefined = source.groupId ?? source.roomId
     if (!chatId) continue // 一對一聊天不是推播目標
 
@@ -44,7 +56,7 @@ export default defineEventHandler(async (event) => {
     // 完全不知道這個機器人要幹嘛、也沒有任何入口可以點。
     if (ev.type === 'join' && ev.replyToken) {
       try {
-        await replyMessage(ev.replyToken, [welcomeMessage()])
+        await replyMessage(ev.replyToken, [welcomeMessage('join')])
       } catch {
         // 打招呼失敗不該影響 groupId 的登記，那才是這個端點的主要任務
       }
@@ -55,9 +67,14 @@ export default defineEventHandler(async (event) => {
   return { ok: true }
 })
 
-/** 進群組時的自我介紹，同時就是每天的記錄入口 */
-function welcomeMessage() {
+/**
+ * 自我介紹卡片，同時就是記錄入口。
+ * 群組與一對一的說明不同：只有在群組裡開啟才能分享摘要給其他人，
+ * 從一對一開啟時分享功能不會出現，講清楚才不會讓人以為壞掉了。
+ */
+function welcomeMessage(context: 'join' | 'follow') {
   const url = liffUrl()
+  const isGroup = context === 'join'
   return {
     type: 'flex',
     altText: `早安！每天記錄一下狀態吧 ${url}`,
@@ -90,7 +107,9 @@ function welcomeMessage() {
           },
           {
             type: 'text',
-            text: '睡得如何、心情怎樣、有沒有做到想做的事。填完可以選擇要不要分享摘要到這個群組，互相看看彼此的狀態。',
+            text: isGroup
+              ? '睡得如何、心情怎樣、有沒有做到想做的事。填完可以選擇要不要分享摘要到這個群組，互相看看彼此的狀態。'
+              : '睡得如何、心情怎樣、有沒有做到想做的事。想到什麼填什麼，不用一次填完，晚點還能回來補。',
             size: 'sm',
             color: '#6F5B49',
             wrap: true,
@@ -98,7 +117,9 @@ function welcomeMessage() {
           },
           {
             type: 'text',
-            text: '每天早上 8 點我會在這裡提醒大家。',
+            text: isGroup
+              ? '每天上午 9 點半我會在這裡提醒大家。'
+              : '想跟朋友互相監督的話，把我邀進你們的群組，我每天上午 9 點半會在那裡提醒。',
             size: 'xs',
             color: '#6F5B49',
             wrap: true,
