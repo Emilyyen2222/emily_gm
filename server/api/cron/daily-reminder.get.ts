@@ -32,12 +32,7 @@ export default defineEventHandler(async (event) => {
   const failed: string[] = []
 
   for (const chat of chats) {
-    const messages: unknown[] = [
-      {
-        type: 'text',
-        text: `早安！來記錄一下今天的狀態吧 🌤\n${url}`,
-      },
-    ]
+    const messages: unknown[] = [reminderCard(url)]
     if (weeklyMessage) messages.push(weeklyMessage)
 
     try {
@@ -51,6 +46,68 @@ export default defineEventHandler(async (event) => {
 
   return { sent, failed, weekly: Boolean(weeklyMessage) }
 })
+
+/** 早安提醒卡片。用按鈕而不是裸網址，點擊區域大得多，也比較不像廣告訊息 */
+function reminderCard(url: string) {
+  return {
+    type: 'flex',
+    altText: `早安！來記錄一下今天的狀態吧 ${url}`,
+    contents: {
+      type: 'bubble',
+      size: 'kilo',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#FFF8EF',
+        paddingAll: '18px',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              { type: 'box', layout: 'vertical', width: '4px', backgroundColor: '#F9A726', cornerRadius: '2px', contents: [] },
+              { type: 'text', text: '早安', size: 'sm', weight: 'bold', color: '#F9A726', gravity: 'center' },
+            ],
+          },
+          {
+            type: 'text',
+            text: '今天睡得如何？',
+            size: 'xl',
+            weight: 'bold',
+            color: '#3A2513',
+            margin: 'md',
+            wrap: true,
+          },
+          {
+            type: 'text',
+            text: '花 10 秒記錄一下，想到什麼填什麼就好。',
+            size: 'sm',
+            color: '#6F5B49',
+            margin: 'sm',
+            wrap: true,
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#FFF8EF',
+        paddingAll: '18px',
+        paddingTop: 'none',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#F9A726',
+            height: 'sm',
+            action: { type: 'uri', label: '開始記錄', uri: url },
+          },
+        ],
+      },
+    },
+  }
+}
 
 /** 上週（一到日）各成員的護肝達標率排行 */
 async function buildWeeklyReport() {

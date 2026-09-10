@@ -38,11 +38,93 @@ export default defineEventHandler(async (event) => {
         .from('chats')
         .upsert({ chat_id: chatId, chat_type: chatType, active: true }, { onConflict: 'chat_id' })
     }
+
+    // 剛被邀進群組時主動打招呼並附上連結。
+    // 少了這一步，群組成員看到的只是「某某已加入群組」，
+    // 完全不知道這個機器人要幹嘛、也沒有任何入口可以點。
+    if (ev.type === 'join' && ev.replyToken) {
+      try {
+        await replyMessage(ev.replyToken, [welcomeMessage()])
+      } catch {
+        // 打招呼失敗不該影響 groupId 的登記，那才是這個端點的主要任務
+      }
+    }
   }
 
   // LINE 要求快速回應，逾時會重送
   return { ok: true }
 })
+
+/** 進群組時的自我介紹，同時就是每天的記錄入口 */
+function welcomeMessage() {
+  const url = liffUrl()
+  return {
+    type: 'flex',
+    altText: `早安！每天記錄一下狀態吧 ${url}`,
+    contents: {
+      type: 'bubble',
+      size: 'kilo',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#FFF8EF',
+        paddingAll: '18px',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              { type: 'box', layout: 'vertical', width: '4px', backgroundColor: '#F9A726', cornerRadius: '2px', contents: [] },
+              { type: 'text', text: 'Good Morning', size: 'sm', weight: 'bold', color: '#F9A726', gravity: 'center' },
+            ],
+          },
+          {
+            type: 'text',
+            text: '每天花 10 秒，記錄一下自己的狀態',
+            size: 'lg',
+            weight: 'bold',
+            color: '#3A2513',
+            wrap: true,
+            margin: 'md',
+          },
+          {
+            type: 'text',
+            text: '睡得如何、心情怎樣、有沒有做到想做的事。填完可以選擇要不要分享摘要到這個群組，互相看看彼此的狀態。',
+            size: 'sm',
+            color: '#6F5B49',
+            wrap: true,
+            margin: 'md',
+          },
+          {
+            type: 'text',
+            text: '每天早上 8 點我會在這裡提醒大家。',
+            size: 'xs',
+            color: '#6F5B49',
+            wrap: true,
+            margin: 'md',
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#FFF8EF',
+        paddingAll: '18px',
+        paddingTop: 'none',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#F9A726',
+            height: 'sm',
+            action: { type: 'uri', label: '開始記錄', uri: url },
+          },
+        ],
+      },
+    },
+  }
+}
 
 function verifySignature(raw: string, signature: string | undefined, secret: string): boolean {
   if (!signature || !secret) return false
