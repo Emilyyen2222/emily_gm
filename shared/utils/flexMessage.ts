@@ -147,7 +147,7 @@ function row(label: string, value: string) {
 /** 文案一律正向：有記錄本身就值得肯定，沒達標不做負面評價 */
 function encouragement(percent: number): string {
   if (percent >= 100) return '今天全部達成，是一顆超棒的四季豆👍'
-  if (percent >= 60) return '今天狀態不錯，繼續當一顆很棒的四季豆'
-  if (percent > 0) return '有做到就是好的一顆四季豆'
-  return '今天有記錄下來，就是一顆很棒的四季豆了'
+  if (percent >= 60) return '今天狀態不錯，繼續當一顆很棒的四季豆😇'
+  if (percent > 0) return '有做到就已經是一顆好的四季豆☺️'
+  return '今天有記錄下來，就是一顆很棒的四季豆了😌'
 }
