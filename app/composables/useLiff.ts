@@ -13,8 +13,19 @@ export function useLiff() {
   const contextType = useState<ChatContextType>('liff-context', () => 'none')
   const chatId = useState<string | null>('liff-chat-id', () => null)
 
-  /** 只有在群組／多人聊天室開啟時，liff.sendMessages() 才能把卡片發回群組 */
-  const canShareToChat = computed(() => contextType.value === 'group' || contextType.value === 'room')
+  /**
+   * 能不能把卡片發回開啟 LIFF 的那個聊天室。
+   *
+   * 群組與多人聊天室是主要情境。一對一（utou，例如與官方帳號的聊天室）
+   * 也開放 —— 那裡的卡片等於是自己的記錄簿，往上滑就能看到過去每一天。
+   * 外部瀏覽器與無情境（none）則不支援 sendMessages。
+   */
+  const canShareToChat = computed(
+    () => contextType.value === 'group' || contextType.value === 'room' || contextType.value === 'utou',
+  )
+
+  /** 一對一情境的文案要跟群組不同 —— 那裡沒有「其他人」 */
+  const isOneToOne = computed(() => contextType.value === 'utou')
 
   async function init() {
     if (ready.value) return
@@ -62,5 +73,9 @@ export function useLiff() {
     if (liff.isInClient()) liff.closeWindow()
   }
 
-  return { ready, initError, displayName, contextType, chatId, canShareToChat, init, getIdToken, sendToChat, close }
+  return {
+    ready, initError, displayName, contextType, chatId,
+    canShareToChat, isOneToOne,
+    init, getIdToken, sendToChat, close,
+  }
 }

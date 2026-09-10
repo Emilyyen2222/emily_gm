@@ -12,7 +12,7 @@ import {
 } from '#shared/types/record'
 import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
 
-const { ready, initError, displayName, canShareToChat, chatId, init, getIdToken, sendToChat, close } = useLiff()
+const { ready, initError, displayName, canShareToChat, isOneToOne, chatId, init, getIdToken, sendToChat, close } = useLiff()
 
 const form = ref(emptyRecordInput())
 const loading = ref(true)
@@ -225,7 +225,7 @@ async function submit() {
         >
           <input v-model="form.shared" type="checkbox" class="h-5 w-5 accent-brand-orange">
           <span class="flex-1 text-body">
-            <span class="font-bold text-brand-brown">分享到這個群組</span>
+            <span class="font-bold text-brand-brown">{{ isOneToOne ? '在這裡留一張卡片' : '分享到這個群組' }}</span>
             <span class="mt-0.5 block text-caption text-brand-brown-light">
               除了最下面「只給自己的」那一格，其他都會出現在卡片上。
             </span>
@@ -252,7 +252,9 @@ async function submit() {
         class="mx-auto flex h-14 w-full max-w-lg items-center justify-center rounded-2xl bg-brand-orange text-body-lg font-bold text-white transition active:scale-[0.99] active:bg-brand-orange-dark disabled:opacity-50"
         @click="submit"
       >
-        {{ pending ? '儲存中…' : form.shared && canShareToChat ? '儲存並分享到群組' : isUpdate ? '更新紀錄' : '儲存' }}
+        {{ pending ? '儲存中…'
+          : form.shared && canShareToChat ? (isOneToOne ? '儲存並留下卡片' : '儲存並分享到群組')
+          : isUpdate ? '更新紀錄' : '儲存' }}
       </button>
     </div>
   </div>
