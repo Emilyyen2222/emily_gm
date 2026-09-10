@@ -11,16 +11,17 @@ create table if not exists records (
   sleep_hours    numeric(3,1),               -- 由 bed_time 與 wake_time 自動算出
   bed_time       time,
   wake_time      time,
-  sleep_note     text,                       -- 隱私欄位，不進 Flex Message
+  sleep_note     text,
   bowel_movement boolean,
-  bowel_time     time,                       -- 隱私欄位，不進 Flex Message
-  bowel_note     text,                       -- 隱私欄位，不進 Flex Message
+  bowel_time     time,
+  bowel_note     text,
   leave_home_time time,                      -- 早上出門時間
   leave_office_time time,                    -- 離開公司時間
-  allergy        text[] default '{}',        -- 隱私欄位，不進 Flex Message
-  allergy_note   text,                       -- 隱私欄位，不進 Flex Message
+  allergy        text[] default '{}',
+  allergy_note   text,
   mood           text,
-  mood_note      text,                       -- 隱私欄位，不進 Flex Message
+  mood_note      text,
+  private_note   text,                       -- 只給自己的，永遠不進 Flex Message
   liver_care     text[] default '{}',
   liver_score    smallint default 0,
   shared         boolean default false,

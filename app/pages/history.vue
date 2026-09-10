@@ -55,7 +55,7 @@ const needMore = computed(() => Math.max(0, INSIGHT_MIN_RECORDS - records.value.
 
 /** 有寫任何備註的日子，當成日記回顧 */
 const noteDays = computed(() =>
-  records.value.filter((r) => r.sleepNote || r.moodNote || r.bowelNote || r.allergyNote),
+  records.value.filter((r) => r.sleepNote || r.moodNote || r.bowelNote || r.allergyNote || r.privateNote),
 )
 
 function shortDate(date: string) {
@@ -211,6 +211,7 @@ function shortDate(date: string) {
                 { label: '心情', value: r.moodNote },
                 { label: '排便', value: r.bowelNote },
                 { label: '過敏', value: r.allergyNote },
+                { label: '只給自己的', value: r.privateNote },
               ].filter((n) => n.value)" :key="note.label">
                 <dt class="text-caption text-brand-brown-light">{{ note.label }}</dt>
                 <dd class="text-body text-brand-brown">{{ note.value }}</dd>

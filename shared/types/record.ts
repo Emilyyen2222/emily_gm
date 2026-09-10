@@ -52,6 +52,8 @@ export interface RecordInput {
   allergyNote: string | null
   mood: string | null
   moodNote: string | null
+  /** 只給自己的。永遠不會出現在分享卡片上 */
+  privateNote: string | null
   liverCare: string[]
   /** 本次是否分享到群組 */
   shared: boolean
@@ -99,6 +101,7 @@ export function emptyRecordInput(): RecordInput {
     allergyNote: null,
     mood: null,
     moodNote: null,
+    privateNote: null,
     liverCare: [],
     shared: true,
     sourceChatId: null,

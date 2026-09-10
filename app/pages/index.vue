@@ -215,6 +215,10 @@ async function submit() {
           <ChipMultiSelect v-model="form.liverCare" :options="LIVER_CARE_OPTIONS" />
         </FormSection>
 
+        <FormSection title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
+          <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
+        </FormSection>
+
         <label
           v-if="canShareToChat"
           class="flex items-center gap-3 rounded-2xl border border-brand-border bg-white p-4"
@@ -223,7 +227,7 @@ async function submit() {
           <span class="flex-1 text-body">
             <span class="font-bold text-brand-brown">分享到這個群組</span>
             <span class="mt-0.5 block text-caption text-brand-brown-light">
-              只顯示睡眠分數、心情與自我照顧達標率。排便、過敏與所有備註都不會出現在卡片上。
+              除了最下面「只給自己的」那一格，其他都會出現在卡片上。
             </span>
           </span>
         </label>

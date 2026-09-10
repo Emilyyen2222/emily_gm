@@ -9,18 +9,106 @@ const C = {
   brownLight: '#6F5B49',
   cream: '#FFF8EF',
   border: '#EAD7BD',
-  green: '#5A8F29',
 } as const
+
+/** 卡片上每則備註的顯示上限。想看全文的人可以直接問本人 */
+const NOTE_PREVIEW_LENGTH = 60
 
 /**
  * 每日分享卡片。
  *
- * 隱私原則：只放社交友善的摘要（睡眠分數、心情、自我照顧達標率），
- * 絕不放排便時間、過敏細節與任何備註文字 —— 群組所有人都看得到這張卡片。
+ * 公開範圍：除了 privateNote（「只給自己的」），其餘欄位都會出現在這裡。
+ * privateNote 是使用者唯一確定不會被看到的地方，任何情況下都不得放進卡片。
  */
 export function buildDailyFlexMessage(record: DailyRecord) {
   const name = record.displayName ?? '某位夥伴'
   const percent = Math.round((record.liverScore / LIVER_CARE_TOTAL) * 100)
+
+  const notes = [
+    { label: '夢', value: record.sleepNote },
+    { label: '心情', value: record.moodNote },
+    { label: '排便', value: record.bowelNote },
+    { label: '過敏', value: record.allergyNote },
+  ].filter((n): n is { label: string; value: string } => Boolean(n.value))
+
+  const body: unknown[] = [
+    {
+      type: 'box',
+      layout: 'horizontal',
+      spacing: 'sm',
+      contents: [
+        { type: 'box', layout: 'vertical', width: '4px', backgroundColor: C.orange, cornerRadius: '2px', contents: [] },
+        { type: 'text', text: '今日狀態', size: 'sm', weight: 'bold', color: C.orange, gravity: 'center' },
+      ],
+    },
+    { type: 'text', text: name, size: 'xl', weight: 'bold', color: C.brown, wrap: true, margin: 'md' },
+    { type: 'separator', margin: 'lg', color: C.border },
+    {
+      type: 'box',
+      layout: 'vertical',
+      margin: 'lg',
+      spacing: 'md',
+      contents: [
+        row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore}%`),
+        row('心情', record.mood ?? '－'),
+        row('自我照顧', `${record.liverScore} / ${LIVER_CARE_TOTAL}`),
+      ],
+    },
+  ]
+
+  // 幾點睡到幾點醒。只有兩個時間都填了才顯示，否則資訊不完整反而令人困惑
+  if (record.bedTime && record.wakeTime) {
+    body.push({
+      type: 'text',
+      text: `${record.bedTime} → ${record.wakeTime}${record.sleepHours ? `・${record.sleepHours} 小時` : ''}`,
+      size: 'sm',
+      color: C.brownLight,
+      margin: 'md',
+    })
+  }
+
+  if (notes.length) {
+    body.push({ type: 'separator', margin: 'lg', color: C.border })
+    body.push({
+      type: 'box',
+      layout: 'vertical',
+      margin: 'lg',
+      spacing: 'md',
+      contents: notes.map((note) => ({
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'xs',
+        contents: [
+          { type: 'text', text: note.label, size: 'xs', color: C.orange, weight: 'bold' },
+          { type: 'text', text: truncate(note.value), size: 'sm', color: C.brown, wrap: true },
+        ],
+      })),
+    })
+  }
+
+  // 進度條刻意不使用紅色 —— 這是自我追蹤不是考核，低分不該被視覺指責
+  body.push({
+    type: 'box',
+    layout: 'horizontal',
+    margin: 'lg',
+    spacing: 'xs',
+    contents: Array.from({ length: LIVER_CARE_TOTAL }, (_, i) => ({
+      type: 'box',
+      layout: 'vertical',
+      height: '6px',
+      cornerRadius: '3px',
+      backgroundColor: i < record.liverScore ? C.orange : C.gold,
+      contents: [],
+    })),
+  })
+  body.push({
+    type: 'text',
+    text: encouragement(percent),
+    size: 'xs',
+    color: C.brownLight,
+    margin: 'md',
+    wrap: true,
+  })
 
   return {
     type: 'flex' as const,
@@ -35,66 +123,14 @@ export function buildDailyFlexMessage(record: DailyRecord) {
         backgroundColor: C.cream,
         paddingAll: '18px',
         spacing: 'none',
-        contents: [
-          // 標頭：一條金色細線 + 標籤，比純文字標題更有份量
-          {
-            type: 'box',
-            layout: 'horizontal',
-            spacing: 'sm',
-            contents: [
-              { type: 'box', layout: 'vertical', width: '4px', backgroundColor: C.orange, cornerRadius: '2px', contents: [] },
-              { type: 'text', text: '今日狀態', size: 'sm', weight: 'bold', color: C.orange, gravity: 'center' },
-            ],
-          },
-          {
-            type: 'text',
-            text: name,
-            size: 'xl',
-            weight: 'bold',
-            color: C.brown,
-            wrap: true,
-            margin: 'md',
-          },
-          { type: 'separator', margin: 'lg', color: C.border },
-          {
-            type: 'box',
-            layout: 'vertical',
-            margin: 'lg',
-            spacing: 'md',
-            contents: [
-              row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore}%`),
-              row('心情', record.mood ?? '－'),
-              row('自我照顧', `${record.liverScore} / ${LIVER_CARE_TOTAL}`),
-            ],
-          },
-          // 進度條：用色塊而非紅綠燈式的圓點。
-          // 刻意不使用紅色 —— 這是自我追蹤不是考核，低分不該被視覺指責。
-          {
-            type: 'box',
-            layout: 'horizontal',
-            margin: 'lg',
-            spacing: 'xs',
-            contents: Array.from({ length: LIVER_CARE_TOTAL }, (_, i) => ({
-              type: 'box',
-              layout: 'vertical',
-              height: '6px',
-              cornerRadius: '3px',
-              backgroundColor: i < record.liverScore ? C.orange : C.gold,
-              contents: [],
-            })),
-          },
-          {
-            type: 'text',
-            text: encouragement(percent),
-            size: 'xs',
-            color: C.brownLight,
-            margin: 'md',
-            wrap: true,
-          },
-        ],
+        contents: body,
       },
     },
   }
+}
+
+function truncate(text: string): string {
+  return text.length > NOTE_PREVIEW_LENGTH ? `${text.slice(0, NOTE_PREVIEW_LENGTH)}…` : text
 }
 
 function row(label: string, value: string) {
