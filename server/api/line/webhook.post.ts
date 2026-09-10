@@ -85,14 +85,14 @@ export default defineEventHandler(async (event) => {
 
   // LINE 要求快速回應，逾時會重送
   return { ok: true, handled }
-}
+})
 
 /** 把 $fetch 的錯誤壓成一行，方便從回應裡直接看出原因 */
 function describe(err: any): string {
   const status = err?.response?.status ?? err?.statusCode ?? '?'
   const detail = err?.data ? JSON.stringify(err.data) : (err?.message ?? '')
   return `[${status}] ${detail}`.slice(0, 300)
-})
+}
 
 /**
  * 自我介紹卡片，同時就是記錄入口。
