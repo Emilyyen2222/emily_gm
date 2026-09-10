@@ -9,6 +9,12 @@ export default defineNuxtConfig({
 
   modules: ['@nuxtjs/tailwindcss'],
 
+  // 用模組的 cssPath 指定入口，而不是塞進 css: []。
+  // 後者會讓模組另外再注入一份預設的 Tailwind 檔，變成重複載入。
+  tailwindcss: {
+    cssPath: '~/assets/css/main.css',
+  },
+
   runtimeConfig: {
     // 以下僅存在於 server 端，不會進入瀏覽器 bundle
     lineLoginChannelId: '',
@@ -29,6 +35,17 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'format-detection', content: 'telephone=no' },
+        { name: 'theme-color', content: '#FFF8EF' },
+      ],
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
+        },
+        // Huninn（粉圓體）：中文字體，與 SugarTopia 同一套
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Huninn&display=swap' },
       ],
     },
   },

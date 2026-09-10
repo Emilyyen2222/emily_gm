@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 字體與 SugarTopia 一致：拉丁字母走 Poppins，中文自動 fallback 到 Huninn
+   （粉圓體，比系統預設中文字體圓潤溫暖）。html 與 body 都要設 ——
+   Tailwind Preflight 會在 html 上寫一份 font-family，只改 body 的話中文
+   會從 html 繼承到沒有 Huninn 的那份清單，實測不生效。 */
+html,
+body {
+  font-family: 'Poppins', 'Huninn', sans-serif;
+}
+
+/* 手機版防呆：鎖死橫向捲動，避免任何單一元件溢出就讓整頁能被拉歪 */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* time / number 這類原生輸入在 iOS 上預設字級會被放大，統一壓回 16px
+   以下會觸發 iOS 自動縮放，所以維持 16px 是刻意的 */
+input[type='time'],
+input[type='number'],
+input[type='text'],
+textarea {
+  font-size: 16px;
+}

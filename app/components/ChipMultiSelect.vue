@@ -26,10 +26,10 @@ function toggle(option: string) {
       v-for="option in options"
       :key="option"
       type="button"
-      class="min-h-12 rounded-xl border-2 px-4 text-sm font-medium transition"
+      class="min-h-12 rounded-xl border-2 px-4 text-body font-medium transition"
       :class="model.includes(option)
-        ? 'border-brand-500 bg-brand-500 text-white'
-        : 'border-gray-200 bg-white text-gray-600'"
+        ? 'border-brand-orange bg-brand-orange text-white'
+        : 'border-brand-border bg-white text-brand-brown-light'"
       @click="toggle(option)"
     >
       {{ option }}

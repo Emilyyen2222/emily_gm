@@ -2,6 +2,7 @@ import {
   ALLERGY_OPTIONS,
   LIVER_CARE_OPTIONS,
   MOOD_OPTIONS,
+  NOTE_MAX_LENGTH,
   type DailyRecord,
   type RecordInput,
 } from '../../shared/types/record'
@@ -13,10 +14,14 @@ export function rowToRecord(row: Record<string, any>): DailyRecord {
     displayName: row.display_name ?? null,
     sleepScore: row.sleep_score ?? null,
     sleepHours: row.sleep_hours === null || row.sleep_hours === undefined ? null : Number(row.sleep_hours),
+    sleepNote: row.sleep_note ?? null,
     bowelMovement: row.bowel_movement ?? null,
     bowelTime: row.bowel_time ? String(row.bowel_time).slice(0, 5) : null,
+    bowelNote: row.bowel_note ?? null,
+    leaveHomeTime: row.leave_home_time ? String(row.leave_home_time).slice(0, 5) : null,
     allergy: row.allergy ?? [],
     mood: row.mood ?? null,
+    moodNote: row.mood_note ?? null,
     liverCare: row.liver_care ?? [],
     liverScore: row.liver_score ?? 0,
     shared: row.shared ?? false,
@@ -54,17 +59,29 @@ export function sanitizeRecordInput(input: Partial<RecordInput>) {
   return {
     sleepScore: input.sleepScore === null || input.sleepScore === undefined ? null : clampScore(input.sleepScore),
     sleepHours: input.sleepHours === null || input.sleepHours === undefined ? null : clampHours(input.sleepHours),
+    sleepNote: cleanNote(input.sleepNote),
     bowelMovement: typeof input.bowelMovement === 'boolean' ? input.bowelMovement : null,
     // 沒排便就不該有排便時間
     bowelTime: input.bowelMovement === true && isTimeString(input.bowelTime) ? input.bowelTime : null,
+    bowelNote: cleanNote(input.bowelNote),
+    leaveHomeTime: isTimeString(input.leaveHomeTime) ? input.leaveHomeTime : null,
     // 選了「無」就不該同時有其他症狀
     allergy: allergy.includes('無') ? ['無'] : allergy,
     mood: typeof input.mood === 'string' && (MOOD_OPTIONS as readonly string[]).includes(input.mood) ? input.mood : null,
+    moodNote: cleanNote(input.moodNote),
     liverCare,
     liverScore: liverCare.length,
     shared: input.shared === true,
     sourceChatId: typeof input.sourceChatId === 'string' && input.sourceChatId ? input.sourceChatId : null,
   }
+}
+
+/** 備註：去頭尾空白、截斷過長內容，全空白視同沒填 */
+function cleanNote(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  return trimmed.slice(0, NOTE_MAX_LENGTH)
 }
 
 function isTimeString(value: unknown): value is string {
