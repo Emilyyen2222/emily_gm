@@ -1,7 +1,7 @@
 import { LIVER_CARE_TOTAL } from '../../../shared/types/record'
 
 /**
- * 每日提醒推播。由 Vercel Cron 於 01:30 UTC（= 台北 09:30）觸發。
+ * 每日提醒推播。由 Vercel Cron 於 01:00 UTC（= 台北 09:00）觸發。
  *
  * Vercel Hobby 方案的 Cron 一天只能觸發一次，所以週報沒有另設排程，
  * 而是在這裡判斷「今天是不是星期一」再決定要不要一併發出。
