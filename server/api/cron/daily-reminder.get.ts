@@ -140,7 +140,7 @@ async function buildWeeklyReport() {
 
   return {
     type: 'flex',
-    altText: `上週護肝排行：${ranking[0]!.name} ${ranking[0]!.rate}%`,
+    altText: `上週誰的肝最乾淨：${ranking[0]!.name} ${ranking[0]!.rate}%`,
     contents: {
       type: 'bubble',
       size: 'kilo',
@@ -149,7 +149,7 @@ async function buildWeeklyReport() {
         layout: 'vertical',
         spacing: 'md',
         contents: [
-          { type: 'text', text: '上週護肝排行', weight: 'bold', size: 'lg' },
+          { type: 'text', text: '上週誰的肝最乾淨', weight: 'bold', size: 'lg' },
           { type: 'text', text: `${start} ~ ${end}`, size: 'xs', color: '#6b7280' },
           { type: 'separator', margin: 'md' },
           {
