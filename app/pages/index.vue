@@ -153,7 +153,7 @@ async function submit() {
 
         <FormSection title="睡眠" hint="滿意度、時數，想補充的都可以寫">
           <PercentSlider v-model="form.sleepScore" :labels="['很差', '普通', '很好']" />
-          <div class="mt-4 grid grid-cols-2 gap-3">
+          <div class="mt-4 space-y-3">
             <TimeField v-model="form.bedTime" label="幾點睡" />
             <TimeField v-model="form.wakeTime" label="幾點醒" />
           </div>
@@ -191,7 +191,7 @@ async function submit() {
         </FormSection>
 
         <FormSection title="上班時間" :hint="workHours ? `在外 ${workHours}` : undefined">
-          <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-3">
             <TimeField v-model="form.leaveHomeTime" label="出門" />
             <TimeField v-model="form.leaveOfficeTime" label="離開公司" />
           </div>

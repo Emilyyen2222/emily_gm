@@ -19,35 +19,10 @@ body {
 
 /* time / number 這類原生輸入在 iOS 上預設字級會被放大，統一壓回 16px
    以下會觸發 iOS 自動縮放，所以維持 16px 是刻意的 */
-input[type='time'],
 input[type='number'],
 input[type='text'],
 textarea {
   font-size: 16px;
-}
-
-/* iOS Safari 的 input[type=time] 有自己的原生外觀：寬度由內容決定、值置中、
-   還帶著自己的內距。套上 w-full 之後就會跟旁邊的輸入框對不齊，看起來像破版。
-   關掉原生外觀、強制區塊寬度與值靠左，才能跟其他欄位長得一樣。 */
-input[type='time'] {
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
-  width: 100%;
-  min-height: 48px;
-}
-
-/* 值本身在 iOS 上預設會置中並帶 margin，要另外清掉 */
-input[type='time']::-webkit-date-and-time-value {
-  text-align: left;
-  margin: 0;
-  line-height: normal;
-}
-
-/* 未填寫時 iOS 會顯示灰色的 --:--，讓它跟 placeholder 同一個顏色 */
-input[type='time']:invalid::-webkit-datetime-edit {
-  color: #6f5b49;
-  opacity: 0.6;
 }
 
 /* 滑桿：原生外觀在 iOS 與桌機差異很大，一律關掉自己畫。
