@@ -4,7 +4,6 @@ import {
   LIVER_CARE_OPTIONS,
   LIVER_CARE_TOTAL,
   MOOD_OPTIONS,
-  PERIOD_OPTIONS,
   computeSleepHours,
   countFilled,
   emptyRecordInput,
@@ -212,10 +211,6 @@ async function submit() {
           </div>
         </FormSection>
 
-        <FormSection title="經期" hint="只有你看得到，不會出現在群組卡片上">
-          <ChipSingleSelect v-model="form.period" :options="PERIOD_OPTIONS" />
-        </FormSection>
-
         <FormSection title="自我照顧" :badge="`${liverPercent}%`">
           <ChipMultiSelect v-model="form.liverCare" :options="LIVER_CARE_OPTIONS" />
         </FormSection>
@@ -228,7 +223,7 @@ async function submit() {
           <span class="flex-1 text-body">
             <span class="font-bold text-brand-brown">分享到這個群組</span>
             <span class="mt-0.5 block text-caption text-brand-brown-light">
-              只顯示睡眠分數、心情與自我照顧達標率。排便、過敏、經期與所有備註都不會出現在卡片上。
+              只顯示睡眠分數、心情與自我照顧達標率。排便、過敏與所有備註都不會出現在卡片上。
             </span>
           </span>
         </label>

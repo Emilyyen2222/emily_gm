@@ -17,14 +17,6 @@ export type LiverCareOption = (typeof LIVER_CARE_OPTIONS)[number]
 export const MOOD_OPTIONS = ['😊', '😐', '😔', '😡'] as const
 export type MoodOption = (typeof MOOD_OPTIONS)[number]
 
-/**
- * 經期。這是隱私欄位，永遠不會出現在群組卡片上。
- * 追蹤它的理由是它會同時影響睡眠、心情與過敏 —— 少了這個變因，
- * 之後的關聯分析很容易得出錯誤結論。
- */
-export const PERIOD_OPTIONS = ['無', '輕', '中', '重'] as const
-export type PeriodOption = (typeof PERIOD_OPTIONS)[number]
-
 /** 心情換算成分數，用於計算平均與關聯分析 */
 export const MOOD_SCORE: Record<string, number> = {
   '😊': 100,
@@ -60,7 +52,6 @@ export interface RecordInput {
   allergyNote: string | null
   mood: string | null
   moodNote: string | null
-  period: string | null
   liverCare: string[]
   /** 本次是否分享到群組 */
   shared: boolean
@@ -108,7 +99,6 @@ export function emptyRecordInput(): RecordInput {
     allergyNote: null,
     mood: null,
     moodNote: null,
-    period: null,
     liverCare: [],
     shared: true,
     sourceChatId: null,
@@ -125,7 +115,6 @@ export function countFilled(input: RecordInput): { filled: number; total: number
     input.leaveOfficeTime !== null,
     input.allergy.length > 0,
     input.mood !== null,
-    input.period !== null,
     input.liverCare.length > 0,
   ]
   return { filled: checks.filter(Boolean).length, total: checks.length }

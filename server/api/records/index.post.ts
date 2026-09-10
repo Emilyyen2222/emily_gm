@@ -40,7 +40,6 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
         allergy_note: input.allergyNote,
         mood: input.mood,
         mood_note: input.moodNote,
-        period: input.period,
         liver_care: input.liverCare,
         liver_score: input.liverScore,
         shared: input.shared,

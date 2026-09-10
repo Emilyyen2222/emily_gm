@@ -21,7 +21,6 @@ create table if not exists records (
   allergy_note   text,                       -- 隱私欄位，不進 Flex Message
   mood           text,
   mood_note      text,                       -- 隱私欄位，不進 Flex Message
-  period         text,                       -- 隱私欄位，絕不進 Flex Message
   liver_care     text[] default '{}',
   liver_score    smallint default 0,
   shared         boolean default false,

@@ -85,21 +85,6 @@ export function buildInsights(records: DailyRecord[]): Insight[] {
     if (result) insights.push(result)
   }
 
-  // 經期會同時影響睡眠與心情，是解讀其他數字時的重要背景
-  const periodSleep = compare(records, 'sleepScore', (r) => r.period !== null && r.period !== '無', {
-    title: '經期期間，睡眠品質',
-    with: '經期中',
-    without: '非經期',
-  })
-  if (periodSleep) insights.push(periodSleep)
-
-  const periodMood = compare(records, 'mood', (r) => r.period !== null && r.period !== '無', {
-    title: '經期期間，心情',
-    with: '經期中',
-    without: '非經期',
-  })
-  if (periodMood) insights.push(periodMood)
-
   // 睡得久是否真的睡得好 —— 用中位數切開，避免被極端值影響
   const hours = records.map((r) => r.sleepHours).filter((h): h is number => h !== null).sort((a, b) => a - b)
   if (hours.length >= MIN_GROUP_SIZE * 2) {
