@@ -4,6 +4,8 @@ import {
   LIVER_CARE_OPTIONS,
   LIVER_CARE_TOTAL,
   MOOD_OPTIONS,
+  PERIOD_OPTIONS,
+  computeSleepHours,
   countFilled,
   emptyRecordInput,
   type RecordsResponse,
@@ -23,6 +25,21 @@ const savedAt = ref<string | null>(null)
 
 const liverPercent = computed(() => Math.round((form.value.liverCare.length / LIVER_CARE_TOTAL) * 100))
 const progress = computed(() => countFilled(form.value))
+
+/** 睡眠時數由入睡與起床時間即時算出，讓使用者填完馬上看到 */
+const sleepHours = computed(() => computeSleepHours(form.value.bedTime, form.value.wakeTime))
+
+/** 出門到離開公司之間的時數。跨夜（例如 09:00 出門、隔日 01:00 離開）也算得出來 */
+const workHours = computed(() => {
+  const { leaveHomeTime: from, leaveOfficeTime: to } = form.value
+  if (!from || !to) return null
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5))
+  let diff = toMin(to) - toMin(from)
+  if (diff < 0) diff += 24 * 60
+  const h = Math.floor(diff / 60)
+  const m = diff % 60
+  return m === 0 ? `${h} 小時` : `${h} 小時 ${m} 分`
+})
 
 onMounted(async () => {
   await init()
@@ -136,22 +153,16 @@ async function submit() {
         </div>
 
         <FormSection title="睡眠" hint="滿意度、時數，想補充的都可以寫">
-          <ScoreSelector v-model="form.sleepScore" name="sleep" />
-          <div class="mt-3">
-            <label class="mb-2 block text-body text-brand-brown-light">睡了幾小時</label>
-            <input
-              v-model.number="form.sleepHours"
-              type="number"
-              inputmode="decimal"
-              step="0.5"
-              min="0"
-              max="24"
-              placeholder="7.5"
-              class="h-12 w-full rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown focus:border-brand-orange focus:outline-none"
-            >
+          <PercentSlider v-model="form.sleepScore" :labels="['很差', '普通', '很好']" />
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <TimeField v-model="form.bedTime" label="幾點睡" />
+            <TimeField v-model="form.wakeTime" label="幾點醒" />
           </div>
+          <p v-if="sleepHours !== null" class="mt-2 text-body text-brand-brown-light">
+            睡了 <span class="font-bold text-brand-brown">{{ sleepHours }}</span> 小時
+          </p>
           <div class="mt-3">
-            <NoteField v-model="form.sleepNote" placeholder="睡不好的原因？幾點睡的？（選填）" />
+            <NoteField v-model="form.sleepNote" label="記個夢" placeholder="做了什麼夢？想記下的都可以寫（選填）" />
           </div>
         </FormSection>
 
@@ -172,12 +183,7 @@ async function submit() {
           </div>
 
           <div v-if="form.bowelMovement === true" class="mt-3">
-            <label class="mb-2 block text-body text-brand-brown-light">時間</label>
-            <input
-              v-model="form.bowelTime"
-              type="time"
-              class="h-12 w-full rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown focus:border-brand-orange focus:outline-none"
-            >
+            <TimeField v-model="form.bowelTime" label="時間" />
           </div>
 
           <div class="mt-3">
@@ -185,23 +191,29 @@ async function submit() {
           </div>
         </FormSection>
 
-        <FormSection title="出門時間" hint="今天幾點出門上班">
-          <input
-            v-model="form.leaveHomeTime"
-            type="time"
-            class="h-12 w-full rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown focus:border-brand-orange focus:outline-none"
-          >
+        <FormSection title="上班時間" :hint="workHours ? `在外 ${workHours}` : undefined">
+          <div class="grid grid-cols-2 gap-3">
+            <TimeField v-model="form.leaveHomeTime" label="出門" />
+            <TimeField v-model="form.leaveOfficeTime" label="離開公司" />
+          </div>
         </FormSection>
 
-        <FormSection title="早上過敏症狀">
+        <FormSection title="今天有過敏嗎">
           <ChipMultiSelect v-model="form.allergy" :options="ALLERGY_OPTIONS" exclusive="無" />
+          <div class="mt-3">
+            <NoteField v-model="form.allergyNote" placeholder="什麼情況下出現的？（選填）" />
+          </div>
         </FormSection>
 
         <FormSection title="起床心情">
           <MoodPicker v-model="form.mood" :options="MOOD_OPTIONS" />
           <div class="mt-3">
-            <NoteField v-model="form.moodNote" placeholder="今天心情如何？發生了什麼？（選填）" />
+            <NoteField v-model="form.moodNote" placeholder="今天發生了什麼？（選填）" />
           </div>
+        </FormSection>
+
+        <FormSection title="經期" hint="只有你看得到，不會出現在群組卡片上">
+          <ChipSingleSelect v-model="form.period" :options="PERIOD_OPTIONS" />
         </FormSection>
 
         <FormSection title="自我照顧" :badge="`${liverPercent}%`">
@@ -216,7 +228,7 @@ async function submit() {
           <span class="flex-1 text-body">
             <span class="font-bold text-brand-brown">分享到這個群組</span>
             <span class="mt-0.5 block text-caption text-brand-brown-light">
-              只顯示睡眠分數、心情與自我照顧達標率。排便、過敏與所有備註都不會出現在卡片上。
+              只顯示睡眠分數、心情與自我照顧達標率。排便、過敏、經期與所有備註都不會出現在卡片上。
             </span>
           </span>
         </label>

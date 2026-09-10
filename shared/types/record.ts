@@ -3,7 +3,7 @@
  * 改動選項時只需改這裡，前端 UI 與後端白名單驗證會一起跟上。
  */
 
-export const ALLERGY_OPTIONS = ['無', '鼻塞', '打噴嚏', '眼睛癢'] as const
+export const ALLERGY_OPTIONS = ['無', '鼻塞', '眼睛癢', '皮膚癢'] as const
 export type AllergyOption = (typeof ALLERGY_OPTIONS)[number]
 
 /**
@@ -16,6 +16,22 @@ export type LiverCareOption = (typeof LIVER_CARE_OPTIONS)[number]
 
 export const MOOD_OPTIONS = ['😊', '😐', '😔', '😡'] as const
 export type MoodOption = (typeof MOOD_OPTIONS)[number]
+
+/**
+ * 經期。這是隱私欄位，永遠不會出現在群組卡片上。
+ * 追蹤它的理由是它會同時影響睡眠、心情與過敏 —— 少了這個變因，
+ * 之後的關聯分析很容易得出錯誤結論。
+ */
+export const PERIOD_OPTIONS = ['無', '輕', '中', '重'] as const
+export type PeriodOption = (typeof PERIOD_OPTIONS)[number]
+
+/** 心情換算成分數，用於計算平均與關聯分析 */
+export const MOOD_SCORE: Record<string, number> = {
+  '😊': 100,
+  '😐': 66,
+  '😔': 33,
+  '😡': 0,
+}
 
 /** 護肝總項數，用於計算達標率 */
 export const LIVER_CARE_TOTAL = LIVER_CARE_OPTIONS.length
@@ -30,15 +46,21 @@ export const NOTE_MAX_LENGTH = 200
  */
 export interface RecordInput {
   sleepScore: number | null
+  /** 由 bedTime 與 wakeTime 自動算出，前端不直接編輯 */
   sleepHours: number | null
+  bedTime: string | null
+  wakeTime: string | null
   sleepNote: string | null
   bowelMovement: boolean | null
   bowelTime: string | null
   bowelNote: string | null
   leaveHomeTime: string | null
+  leaveOfficeTime: string | null
   allergy: string[]
+  allergyNote: string | null
   mood: string | null
   moodNote: string | null
+  period: string | null
   liverCare: string[]
   /** 本次是否分享到群組 */
   shared: boolean
@@ -74,14 +96,19 @@ export function emptyRecordInput(): RecordInput {
   return {
     sleepScore: null,
     sleepHours: null,
+    bedTime: null,
+    wakeTime: null,
     sleepNote: null,
     bowelMovement: null,
     bowelTime: null,
     bowelNote: null,
     leaveHomeTime: null,
+    leaveOfficeTime: null,
     allergy: [],
+    allergyNote: null,
     mood: null,
     moodNote: null,
+    period: null,
     liverCare: [],
     shared: true,
     sourceChatId: null,
@@ -92,12 +119,24 @@ export function emptyRecordInput(): RecordInput {
 export function countFilled(input: RecordInput): { filled: number; total: number } {
   const checks = [
     input.sleepScore !== null,
-    input.sleepHours !== null,
+    input.bedTime !== null && input.wakeTime !== null,
     input.bowelMovement !== null,
     input.leaveHomeTime !== null,
+    input.leaveOfficeTime !== null,
     input.allergy.length > 0,
     input.mood !== null,
+    input.period !== null,
     input.liverCare.length > 0,
   ]
   return { filled: checks.filter(Boolean).length, total: checks.length }
+}
+
+
+/** 由入睡與起床時間算出睡眠時數。跨夜是常態，所以負值要加回 24 小時 */
+export function computeSleepHours(bedTime: string | null, wakeTime: string | null): number | null {
+  if (!bedTime || !wakeTime) return null
+  const toMinutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5))
+  let diff = toMinutes(wakeTime) - toMinutes(bedTime)
+  if (diff <= 0) diff += 24 * 60
+  return Math.round((diff / 60) * 10) / 10
 }

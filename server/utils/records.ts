@@ -3,6 +3,8 @@ import {
   LIVER_CARE_OPTIONS,
   MOOD_OPTIONS,
   NOTE_MAX_LENGTH,
+  PERIOD_OPTIONS,
+  computeSleepHours,
   type DailyRecord,
   type RecordInput,
 } from '../../shared/types/record'
@@ -14,14 +16,19 @@ export function rowToRecord(row: Record<string, any>): DailyRecord {
     displayName: row.display_name ?? null,
     sleepScore: row.sleep_score ?? null,
     sleepHours: row.sleep_hours === null || row.sleep_hours === undefined ? null : Number(row.sleep_hours),
+    bedTime: row.bed_time ? String(row.bed_time).slice(0, 5) : null,
+    wakeTime: row.wake_time ? String(row.wake_time).slice(0, 5) : null,
     sleepNote: row.sleep_note ?? null,
     bowelMovement: row.bowel_movement ?? null,
     bowelTime: row.bowel_time ? String(row.bowel_time).slice(0, 5) : null,
     bowelNote: row.bowel_note ?? null,
     leaveHomeTime: row.leave_home_time ? String(row.leave_home_time).slice(0, 5) : null,
+    leaveOfficeTime: row.leave_office_time ? String(row.leave_office_time).slice(0, 5) : null,
     allergy: row.allergy ?? [],
+    allergyNote: row.allergy_note ?? null,
     mood: row.mood ?? null,
     moodNote: row.mood_note ?? null,
+    period: row.period ?? null,
     liverCare: row.liver_care ?? [],
     liverScore: row.liver_score ?? 0,
     shared: row.shared ?? false,
@@ -36,16 +43,11 @@ function whitelist(values: unknown, allowed: readonly string[]): string[] {
   return [...new Set(values.filter((v): v is string => typeof v === 'string' && allowed.includes(v)))]
 }
 
+/** 睡眠滿意度是 0-100 的百分比，以 5 為級距 */
 function clampScore(value: unknown): number | null {
   const n = Number(value)
   if (!Number.isFinite(n)) return null
-  return Math.min(5, Math.max(1, Math.round(n)))
-}
-
-function clampHours(value: unknown): number | null {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return null
-  return Math.min(24, Math.max(0, Math.round(n * 10) / 10))
+  return Math.min(100, Math.max(0, Math.round(n / 5) * 5))
 }
 
 /**
@@ -56,19 +58,28 @@ export function sanitizeRecordInput(input: Partial<RecordInput>) {
   const liverCare = whitelist(input.liverCare, LIVER_CARE_OPTIONS)
   const allergy = whitelist(input.allergy, ALLERGY_OPTIONS)
 
+  const bedTime = isTimeString(input.bedTime) ? input.bedTime : null
+  const wakeTime = isTimeString(input.wakeTime) ? input.wakeTime : null
+
   return {
     sleepScore: input.sleepScore === null || input.sleepScore === undefined ? null : clampScore(input.sleepScore),
-    sleepHours: input.sleepHours === null || input.sleepHours === undefined ? null : clampHours(input.sleepHours),
+    // 睡眠時數一律由後端從入睡／起床時間算出，不接受前端傳入
+    sleepHours: computeSleepHours(bedTime, wakeTime),
+    bedTime,
+    wakeTime,
     sleepNote: cleanNote(input.sleepNote),
     bowelMovement: typeof input.bowelMovement === 'boolean' ? input.bowelMovement : null,
     // 沒排便就不該有排便時間
     bowelTime: input.bowelMovement === true && isTimeString(input.bowelTime) ? input.bowelTime : null,
     bowelNote: cleanNote(input.bowelNote),
     leaveHomeTime: isTimeString(input.leaveHomeTime) ? input.leaveHomeTime : null,
+    leaveOfficeTime: isTimeString(input.leaveOfficeTime) ? input.leaveOfficeTime : null,
     // 選了「無」就不該同時有其他症狀
     allergy: allergy.includes('無') ? ['無'] : allergy,
+    allergyNote: cleanNote(input.allergyNote),
     mood: typeof input.mood === 'string' && (MOOD_OPTIONS as readonly string[]).includes(input.mood) ? input.mood : null,
     moodNote: cleanNote(input.moodNote),
+    period: typeof input.period === 'string' && (PERIOD_OPTIONS as readonly string[]).includes(input.period) ? input.period : null,
     liverCare,
     liverScore: liverCare.length,
     shared: input.shared === true,

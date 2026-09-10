@@ -25,7 +25,7 @@ export function buildDailyFlexMessage(record: DailyRecord) {
   return {
     type: 'flex' as const,
     // altText 會出現在通知列與不支援 Flex 的裝置上，必填
-    altText: `${name} 完成了今日狀態記錄：睡眠 ${record.sleepScore ?? '－'}/5，自我照顧 ${percent}%`,
+    altText: `${name} 完成了今日狀態記錄：睡眠 ${record.sleepScore === null ? '－' : record.sleepScore + '%'}，自我照顧 ${percent}%`,
     contents: {
       type: 'bubble',
       size: 'kilo',
@@ -62,7 +62,7 @@ export function buildDailyFlexMessage(record: DailyRecord) {
             margin: 'lg',
             spacing: 'md',
             contents: [
-              row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore} / 5`),
+              row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore}%`),
               row('心情', record.mood ?? '－'),
               row('自我照顧', `${record.liverScore} / ${LIVER_CARE_TOTAL}`),
             ],

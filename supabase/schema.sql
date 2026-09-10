@@ -7,16 +7,21 @@ create table if not exists records (
   record_date    date not null,
   user_id        text not null,
   display_name   text,
-  sleep_score    smallint check (sleep_score between 1 and 5),
-  sleep_hours    numeric(3,1),
+  sleep_score    smallint check (sleep_score between 0 and 100),  -- 睡眠滿意度百分比
+  sleep_hours    numeric(3,1),               -- 由 bed_time 與 wake_time 自動算出
+  bed_time       time,
+  wake_time      time,
   sleep_note     text,                       -- 隱私欄位，不進 Flex Message
   bowel_movement boolean,
   bowel_time     time,                       -- 隱私欄位，不進 Flex Message
   bowel_note     text,                       -- 隱私欄位，不進 Flex Message
-  leave_home_time time,                      -- 上班出門時間
+  leave_home_time time,                      -- 早上出門時間
+  leave_office_time time,                    -- 離開公司時間
   allergy        text[] default '{}',        -- 隱私欄位，不進 Flex Message
+  allergy_note   text,                       -- 隱私欄位，不進 Flex Message
   mood           text,
   mood_note      text,                       -- 隱私欄位，不進 Flex Message
+  period         text,                       -- 隱私欄位，絕不進 Flex Message
   liver_care     text[] default '{}',
   liver_score    smallint default 0,
   shared         boolean default false,

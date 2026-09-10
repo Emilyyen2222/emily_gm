@@ -25,3 +25,91 @@ input[type='text'],
 textarea {
   font-size: 16px;
 }
+
+/* iOS Safari 的 input[type=time] 有自己的原生外觀：寬度由內容決定、值置中、
+   還帶著自己的內距。套上 w-full 之後就會跟旁邊的輸入框對不齊，看起來像破版。
+   關掉原生外觀、強制區塊寬度與值靠左，才能跟其他欄位長得一樣。 */
+input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 48px;
+}
+
+/* 值本身在 iOS 上預設會置中並帶 margin，要另外清掉 */
+input[type='time']::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  line-height: normal;
+}
+
+/* 未填寫時 iOS 會顯示灰色的 --:--，讓它跟 placeholder 同一個顏色 */
+input[type='time']:invalid::-webkit-datetime-edit {
+  color: #6f5b49;
+  opacity: 0.6;
+}
+
+/* 滑桿：原生外觀在 iOS 與桌機差異很大，一律關掉自己畫。
+   已填的軌道用 --pct 這個 CSS 變數畫出左側的橘色進度，
+   未填時整條維持米金色，讓「還沒選」跟「選了 50%」在視覺上分得出來。 */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: #f1e3c8;
+}
+
+input[type='range'].slider-set::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #f9a726 var(--pct), #f1e3c8 var(--pct));
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -10px; /* (28 - 8) / 2，讓拇指跟軌道垂直置中 */
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 3px solid #ead7bd;
+  box-shadow: 0 1px 3px rgb(58 37 19 / 0.2);
+}
+
+input[type='range'].slider-set::-webkit-slider-thumb {
+  border-color: #f9a726;
+}
+
+/* Firefox 走另一組 pseudo-element，要各寫一份 */
+input[type='range']::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: #f1e3c8;
+}
+
+input[type='range'].slider-set::-moz-range-progress {
+  height: 8px;
+  border-radius: 9999px;
+  background: #f9a726;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 3px solid #ead7bd;
+}
+
+input[type='range'].slider-set::-moz-range-thumb {
+  border-color: #f9a726;
+}
