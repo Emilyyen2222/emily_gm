@@ -21,50 +21,77 @@ export default defineEventHandler(async (event) => {
   const body = JSON.parse(raw) as { events?: any[] }
   const supabase = useSupabase()
 
+  // 逐一記錄每個事件的處理結果。LINE 不看回應內容，但我們可以用
+  // 帶正確簽章的請求打這個端點，直接讀出哪一步失敗了。
+  const handled: string[] = []
+
   for (const ev of body.events ?? []) {
     const source = ev?.source ?? {}
 
     // 使用者把官方帳號加為好友。這是一對一情境，沒有 groupId，
     // 所以要在取 chatId 之前處理，否則會被下面的 continue 跳掉。
-    if (ev.type === 'follow' && ev.replyToken) {
+    if (ev.type === 'follow') {
+      if (!ev.replyToken) {
+        handled.push('follow: 沒有 replyToken')
+        continue
+      }
       try {
         await replyMessage(ev.replyToken, [welcomeMessage('follow')])
-      } catch {
-        // 打招呼失敗不需要中斷其他事件的處理
+        handled.push('follow: 已回覆歡迎卡片')
+      } catch (err: any) {
+        handled.push(`follow: 回覆失敗 ${describe(err)}`)
       }
       continue
     }
 
     const chatId: string | undefined = source.groupId ?? source.roomId
-    if (!chatId) continue // 一對一聊天不是推播目標
+    if (!chatId) {
+      handled.push(`${ev.type}: 沒有 groupId／roomId，略過`)
+      continue
+    }
 
     const chatType = source.groupId ? 'group' : 'room'
 
     if (ev.type === 'leave') {
       await supabase.from('chats').update({ active: false }).eq('chat_id', chatId)
+      handled.push('leave: 已標記為非活躍')
       continue
     }
 
     if (ev.type === 'join' || ev.type === 'message') {
-      await supabase
+      const { error } = await supabase
         .from('chats')
         .upsert({ chat_id: chatId, chat_type: chatType, active: true }, { onConflict: 'chat_id' })
+      handled.push(error ? `${ev.type}: 登記失敗 ${error.message}` : `${ev.type}: 已登記聊天室`)
     }
 
     // 剛被邀進群組時主動打招呼並附上連結。
     // 少了這一步，群組成員看到的只是「某某已加入群組」，
     // 完全不知道這個機器人要幹嘛、也沒有任何入口可以點。
-    if (ev.type === 'join' && ev.replyToken) {
-      try {
-        await replyMessage(ev.replyToken, [welcomeMessage('join')])
-      } catch {
-        // 打招呼失敗不該影響 groupId 的登記，那才是這個端點的主要任務
+    if (ev.type === 'join') {
+      if (!ev.replyToken) {
+        handled.push('join: 沒有 replyToken，無法打招呼')
+      } else {
+        try {
+          await replyMessage(ev.replyToken, [welcomeMessage('join')])
+          handled.push('join: 已回覆歡迎卡片')
+        } catch (err: any) {
+          // 打招呼失敗不該影響 groupId 的登記，那才是這個端點的主要任務
+          handled.push(`join: 回覆失敗 ${describe(err)}`)
+        }
       }
     }
   }
 
   // LINE 要求快速回應，逾時會重送
-  return { ok: true }
+  return { ok: true, handled }
+}
+
+/** 把 $fetch 的錯誤壓成一行，方便從回應裡直接看出原因 */
+function describe(err: any): string {
+  const status = err?.response?.status ?? err?.statusCode ?? '?'
+  const detail = err?.data ? JSON.stringify(err.data) : (err?.message ?? '')
+  return `[${status}] ${detail}`.slice(0, 300)
 })
 
 /**
