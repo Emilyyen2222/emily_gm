@@ -98,9 +98,18 @@ async function submit() {
     })
 
     if (form.value.shared && canShareToChat.value) {
-      await sendToChat(buildDailyFlexMessage({ ...record, displayName: record.displayName ?? displayName.value }))
-      close()
-      return
+      try {
+        await sendToChat(buildDailyFlexMessage({ ...record, displayName: record.displayName ?? displayName.value }))
+        close()
+        return
+      } catch (err: any) {
+        // 資料已經寫進去了，只有卡片沒發出去。分開講清楚，
+        // 否則使用者會以為整筆都失敗而重填一次。
+        isUpdate.value = true
+        savedAt.value = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
+        submitError.value = `資料已儲存，但卡片沒發出去：${err?.message ?? err?.code ?? '未知錯誤'}`
+        return
+      }
     }
 
     // 沒有要分享時不關閉視窗，讓使用者知道存好了、還能繼續補其他欄位
@@ -274,9 +283,6 @@ async function submit() {
           查看我的紀錄
         </NuxtLink>
 
-        <p v-if="submitError" class="rounded-2xl border-2 border-red-200 bg-red-50 p-3 text-body text-red-700">
-          {{ submitError }}
-        </p>
       </form>
     </div>
 
