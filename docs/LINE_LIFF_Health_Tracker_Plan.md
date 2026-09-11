@@ -24,7 +24,7 @@
 
 ### 資料流概觀
 ```
-[Vercel Cron 01:00 UTC = 09:00 台北] --> [/api/cron/daily-reminder]
+[Vercel Cron 00:00 UTC = 08:00 台北] --> [/api/cron/daily-reminder]
                                               |
                                      push message 至 LINE 群組
                                               v
@@ -57,10 +57,10 @@
 *   **Vercel 的執行環境是 UTC**，所有「今天是哪一天」的判斷都必須明確轉換為 `Asia/Taipei`，不可依賴 `new Date()` 的本地時區。
 *   一筆紀錄的日期以**送出當下的台北時間日期**為準，欄位 `record_date`（`date` 型別）。
 *   「昨晚 11 點前睡」定義為 `record_date` 前一日的 23:00 之前入睡。文案直接寫「昨晚 11 點前入睡」避免歧義。
-*   Cron 設定為 `0 1 * * *`（01:00 UTC）以對應台北時間 09:00。
+*   Cron 設定為 `0 0 * * *`（00:00 UTC）以對應台北時間 08:00。
 
 ### 3. 觸發機制 (Trigger)
-*   **定時提醒（主要路徑）：** Vercel Cron 每天 09:00（台北）觸發 `/api/cron/daily-reminder`，呼叫 Messaging API push message，將含 LIFF 連結的提醒推送至已登記群組。
+*   **定時提醒（主要路徑）：** Vercel Cron 每天 08:00（台北）觸發 `/api/cron/daily-reminder`，呼叫 Messaging API push message，將含 LIFF 連結的提醒推送至已登記群組。
     *   **前提：** push 需要 `groupId`，只能從 Webhook 事件取得（見 Step 4.3）。
     *   **額度：** LINE 免費方案每月推播則數有上限，每日一群組一則（約 30 則/月）在額度內。
     *   **Vercel Hobby 方案的 Cron 一天只能觸發一次**，週報功能因此改為在每日 Cron 內判斷「今天是否為星期一」再決定要不要發，而非另設週排程。
@@ -227,7 +227,7 @@ export default defineNuxtConfig({
 3.  若今日為星期一（台北時區），額外推送上週彙整的週報 Flex Message。
 4.  `vercel.json` 設定：
     ```json
-    { "crons": [{ "path": "/api/cron/daily-reminder", "schedule": "0 1 * * *" }] }
+    { "crons": [{ "path": "/api/cron/daily-reminder", "schedule": "0 0 * * *" }] }
     ```
 
 ### Step 5: 前端開發 (Nuxt SPA)

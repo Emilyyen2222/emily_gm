@@ -145,8 +145,8 @@ function welcomeMessage(context: 'join' | 'follow') {
           {
             type: 'text',
             text: isGroup
-              ? '每天上午 9 點我會在這裡提醒大家。'
-              : '想跟朋友互相監督的話，把我邀進你們的群組，我每天上午 9 點會在那裡提醒。',
+              ? '每天早上 8 點我會在這裡提醒大家。'
+              : '想跟朋友互相監督的話，把我邀進你們的群組，我每天早上 8 點會在那裡提醒。',
             size: 'xs',
             color: '#6F5B49',
             wrap: true,
