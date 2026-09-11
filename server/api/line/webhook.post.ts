@@ -30,9 +30,28 @@ export default defineEventHandler(async (event) => {
 
     // 使用者把官方帳號加為好友。這是一對一情境，沒有 groupId，
     // 所以要在取 chatId 之前處理，否則會被下面的 continue 跳掉。
-    if (ev.type === 'follow') {
+    if (ev.type === 'follow' || ev.type === 'unfollow') {
+      const userId: string | undefined = source.userId
+      if (!userId) {
+        handled.push(`${ev.type}: 沒有 userId`)
+        continue
+      }
+
+      if (ev.type === 'unfollow') {
+        // 封鎖或刪除好友。不能再推播給這個人，但紀錄保留
+        await supabase.from('chats').update({ active: false }).eq('chat_id', userId)
+        handled.push('unfollow: 已停止對此使用者推播')
+        continue
+      }
+
+      // 加好友時登記成推播目標。群組被退掉之後，一對一是唯一還能主動提醒的管道
+      const { error } = await supabase
+        .from('chats')
+        .upsert({ chat_id: userId, chat_type: 'user', active: true }, { onConflict: 'chat_id' })
+      handled.push(error ? `follow: 登記失敗 ${error.message}` : 'follow: 已登記為推播對象')
+
       if (!ev.replyToken) {
-        handled.push('follow: 沒有 replyToken')
+        handled.push('follow: 沒有 replyToken，無法打招呼')
         continue
       }
       try {

@@ -38,7 +38,7 @@ create index if not exists records_user_date_idx on records (user_id, record_dat
 -- 推播目標：groupId 只能從 LINE webhook 事件取得
 create table if not exists chats (
   chat_id   text primary key,
-  chat_type text not null check (chat_type in ('group', 'room')),
+  chat_type text not null check (chat_type in ('group', 'room', 'user')),
   joined_at timestamptz default now(),
   active    boolean default true
 );
