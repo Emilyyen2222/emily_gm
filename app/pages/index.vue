@@ -13,7 +13,14 @@ import {
 } from '#shared/types/record'
 import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
 
-const { ready, initError, displayName, canShareToChat, isOneToOne, chatId, init, getIdToken, sendToChat, close } = useLiff()
+const { ready, initError, displayName, canShareToChat, isOneToOne, contextType, chatId, init, getIdToken, sendToChat, close } = useLiff()
+
+/** 不能分享時要說明原因 —— 勾選框默默消失，使用者無從得知為什麼 */
+const noShareReason = computed(() => {
+  if (canShareToChat.value) return null
+  if (contextType.value === 'external') return '在 LINE 以外的瀏覽器開啟，只會儲存資料，不會發卡片。'
+  return '這次不是從聊天室開啟的，只會儲存資料。想分享的話，從群組或聊天室裡的連結進來。'
+})
 
 const form = ref(emptyRecordInput())
 const loading = ref(true)
@@ -250,6 +257,10 @@ async function submit() {
             </span>
           </span>
         </label>
+
+        <p v-if="noShareReason" class="rounded-2xl border border-brand-border bg-white p-4 text-caption text-brand-brown-light">
+          {{ noShareReason }}
+        </p>
 
         <NuxtLink to="/history" class="block py-2 text-center text-body font-medium text-brand-orange underline">
           查看我的紀錄
