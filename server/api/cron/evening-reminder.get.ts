@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     reminderCard({
       label: '晚安',
       title: '今天過得如何？',
-      body: '排便、上下班時間、保健食品，補一下就好。',
+      body: '\n🕐 上下班時間\n🌿 保健食品\n💩 排便\n\n補一下就好。',
       button: '開始記錄',
       url,
     }),
