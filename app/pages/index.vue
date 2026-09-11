@@ -4,6 +4,7 @@ import {
   LIVER_CARE_OPTIONS,
   LIVER_CARE_TOTAL,
   MOOD_OPTIONS,
+  STEPS_GOAL,
   computeSleepHours,
   countFilled,
   emptyRecordInput,
@@ -195,6 +196,24 @@ async function submit() {
             <TimeField v-model="form.leaveHomeTime" label="出門" />
             <TimeField v-model="form.leaveOfficeTime" label="離開公司" />
           </div>
+        </FormSection>
+
+        <FormSection title="今天走了幾步" hint="手機的健康 App 看得到">
+          <div class="flex items-center gap-3">
+            <input
+              v-model.number="form.steps"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              max="200000"
+              placeholder="8000"
+              class="h-12 flex-1 rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown focus:border-brand-orange focus:outline-none"
+            >
+            <span class="text-body text-brand-brown-light">步</span>
+          </div>
+          <p v-if="form.steps !== null && form.steps >= STEPS_GOAL" class="mt-2 text-body text-brand-green">
+            超過 {{ STEPS_GOAL.toLocaleString() }} 步了
+          </p>
         </FormSection>
 
         <FormSection title="今天有過敏嗎">

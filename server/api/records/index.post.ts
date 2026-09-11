@@ -36,6 +36,7 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
         bowel_note: input.bowelNote,
         leave_home_time: input.leaveHomeTime,
         leave_office_time: input.leaveOfficeTime,
+        steps: input.steps,
         allergy: input.allergy,
         allergy_note: input.allergyNote,
         mood: input.mood,

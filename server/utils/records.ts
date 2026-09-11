@@ -23,6 +23,7 @@ export function rowToRecord(row: Record<string, any>): DailyRecord {
     bowelNote: row.bowel_note ?? null,
     leaveHomeTime: row.leave_home_time ? String(row.leave_home_time).slice(0, 5) : null,
     leaveOfficeTime: row.leave_office_time ? String(row.leave_office_time).slice(0, 5) : null,
+    steps: row.steps ?? null,
     allergy: row.allergy ?? [],
     allergyNote: row.allergy_note ?? null,
     mood: row.mood ?? null,
@@ -73,6 +74,7 @@ export function sanitizeRecordInput(input: Partial<RecordInput>) {
     bowelNote: cleanNote(input.bowelNote),
     leaveHomeTime: isTimeString(input.leaveHomeTime) ? input.leaveHomeTime : null,
     leaveOfficeTime: isTimeString(input.leaveOfficeTime) ? input.leaveOfficeTime : null,
+    steps: clampSteps(input.steps),
     // 選了「無」就不該同時有其他症狀
     allergy: allergy.includes('無') ? ['無'] : allergy,
     allergyNote: cleanNote(input.allergyNote),
@@ -84,6 +86,14 @@ export function sanitizeRecordInput(input: Partial<RecordInput>) {
     shared: input.shared === true,
     sourceChatId: typeof input.sourceChatId === 'string' && input.sourceChatId ? input.sourceChatId : null,
   }
+}
+
+/** 步數：上限取一個極端但仍可能的值，擋掉明顯的輸入錯誤（例如多打一個零） */
+function clampSteps(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  if (!Number.isFinite(n)) return null
+  return Math.min(200000, Math.max(0, Math.round(n)))
 }
 
 /** 備註：去頭尾空白、截斷過長內容，全空白視同沒填 */

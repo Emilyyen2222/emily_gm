@@ -52,6 +52,7 @@ export function buildDailyFlexMessage(record: DailyRecord) {
         row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore}%`),
         row('心情', record.mood ?? '－'),
         row('自我照顧', `${record.liverScore} / ${LIVER_CARE_TOTAL}`),
+        ...(record.steps === null ? [] : [row('步數', `${record.steps.toLocaleString()} 步`)]),
       ],
     },
   ]
@@ -124,6 +125,29 @@ export function buildDailyFlexMessage(record: DailyRecord) {
         paddingAll: '18px',
         spacing: 'none',
         contents: body,
+      },
+      // 「拍拍」把單向的廣播變成雙向。互相監督的關鍵其實不是看到數字，
+      // 是知道有人看到了你。走 postback 由 bot 用 reply 回應，不計入推播額度。
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: C.cream,
+        paddingAll: '18px',
+        paddingTop: 'none',
+        contents: [
+          {
+            type: 'button',
+            style: 'secondary',
+            color: '#FCDC94',
+            height: 'sm',
+            action: {
+              type: 'postback',
+              label: '拍拍',
+              data: `action=pat&name=${encodeURIComponent(name)}`,
+              displayText: `拍拍 ${name}`,
+            },
+          },
+        ],
       },
     },
   }

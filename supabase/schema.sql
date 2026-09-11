@@ -22,6 +22,7 @@ create table if not exists records (
   mood           text,
   mood_note      text,
   private_note   text,                       -- 只給自己的，永遠不進 Flex Message
+  steps          integer check (steps >= 0 and steps <= 200000),
   liver_care     text[] default '{}',
   liver_score    smallint default 0,
   shared         boolean default false,

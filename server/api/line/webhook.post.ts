@@ -63,6 +63,53 @@ export default defineEventHandler(async (event) => {
       continue
     }
 
+    // 文字訊息：一對一一律回應，群組只在「訊息剛好是關鍵字」或「被 @ 到」時回應。
+    // 群組裡大家整天在聊天，bot 每句都插嘴會很快被踢出去。
+    if (ev.type === 'message' && ev.message?.type === 'text' && ev.replyToken) {
+      const isDirect = source.type === 'user'
+      const mentionees: any[] = ev.message.mention?.mentionees ?? []
+      const botId = mentionees.length ? await getBotUserId() : null
+      const mentioned = mentionees.some((m) => m.isSelf === true || (botId && m.userId === botId))
+
+      const text = stripMentions(String(ev.message.text ?? ''), mentionees)
+      const reply = await buildTextReply(text, source.userId, source.groupId ?? source.roomId, {
+        respondToUnknown: isDirect || mentioned,
+      })
+
+      if (reply) {
+        try {
+          await replyMessage(ev.replyToken, [reply])
+          handled.push('message: 已回覆')
+        } catch (err: any) {
+          handled.push(`message: 回覆失敗 ${describe(err)}`)
+        }
+      }
+    }
+
+    // 「拍拍」按鈕
+    if (ev.type === 'postback' && ev.replyToken) {
+      const data = new URLSearchParams(ev.postback?.data ?? '')
+      if (data.get('action') === 'pat') {
+        const target = data.get('name') ?? '對方'
+        let patter = '有人'
+        try {
+          if (source.userId) {
+            const profile = await getProfile(source.userId, source.groupId)
+            if (profile?.displayName) patter = profile.displayName
+          }
+        } catch {
+          // 取不到暱稱不影響功能，用「有人」代替
+        }
+        try {
+          await replyMessage(ev.replyToken, [{ type: 'text', text: `${patter} 拍拍了 ${target} 👏` }])
+          handled.push('postback: 已回覆拍拍')
+        } catch (err: any) {
+          handled.push(`postback: 回覆失敗 ${describe(err)}`)
+        }
+      }
+      continue
+    }
+
     const chatId: string | undefined = source.groupId ?? source.roomId
     if (!chatId) {
       handled.push(`${ev.type}: 沒有 groupId／roomId，略過`)
@@ -191,6 +238,21 @@ function welcomeMessage(context: 'join' | 'follow') {
       },
     },
   }
+}
+
+/**
+ * 移除訊息裡的 @提及文字，只留下真正的指令。
+ * 使用者打「@Emily Good Morning 今天」時，我們要比對的是「今天」。
+ * 從後往前刪，才不會讓前面的刪除動作影響後面片段的索引。
+ */
+function stripMentions(text: string, mentionees: any[]): string {
+  if (!mentionees.length) return text.trim()
+  const ranges = mentionees
+    .filter((m) => typeof m.index === 'number' && typeof m.length === 'number')
+    .sort((a, b) => b.index - a.index)
+  let result = text
+  for (const m of ranges) result = result.slice(0, m.index) + result.slice(m.index + m.length)
+  return result.trim()
 }
 
 function verifySignature(raw: string, signature: string | undefined, secret: string): boolean {

@@ -1,4 +1,4 @@
-import { LIVER_CARE_OPTIONS, MOOD_SCORE, type DailyRecord } from '../types/record'
+import { LIVER_CARE_OPTIONS, MOOD_SCORE, STEPS_GOAL, type DailyRecord } from '../types/record'
 
 /**
  * 關聯洞察：把紀錄依某個條件分成兩群，比較兩群的平均值。
@@ -96,6 +96,21 @@ export function buildInsights(records: DailyRecord[]): Insight[] {
     })
     if (result) insights.push(result)
   }
+
+  // 走路達標與睡眠、心情的關係
+  const stepsSleep = compare(records, 'sleepScore', (r) => (r.steps ?? 0) >= STEPS_GOAL, {
+    title: `走超過 ${STEPS_GOAL.toLocaleString()} 步的日子，睡眠品質`,
+    with: '走得多',
+    without: '走得少',
+  })
+  if (stepsSleep) insights.push(stepsSleep)
+
+  const stepsMood = compare(records, 'mood', (r) => (r.steps ?? 0) >= STEPS_GOAL, {
+    title: `走超過 ${STEPS_GOAL.toLocaleString()} 步的日子，心情`,
+    with: '走得多',
+    without: '走得少',
+  })
+  if (stepsMood) insights.push(stepsMood)
 
   // 過敏與心情
   const allergyMood = compare(records, 'mood', (r) => r.allergy.length > 0 && !r.allergy.includes('無'), {

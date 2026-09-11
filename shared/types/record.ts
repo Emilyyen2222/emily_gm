@@ -25,6 +25,9 @@ export const MOOD_SCORE: Record<string, number> = {
   '😡': 0,
 }
 
+/** 走路達標的門檻，用於顯示與關聯分析 */
+export const STEPS_GOAL = 5000
+
 /** 護肝總項數，用於計算達標率 */
 export const LIVER_CARE_TOTAL = LIVER_CARE_OPTIONS.length
 
@@ -48,6 +51,7 @@ export interface RecordInput {
   bowelNote: string | null
   leaveHomeTime: string | null
   leaveOfficeTime: string | null
+  steps: number | null
   allergy: string[]
   allergyNote: string | null
   mood: string | null
@@ -97,6 +101,7 @@ export function emptyRecordInput(): RecordInput {
     bowelNote: null,
     leaveHomeTime: null,
     leaveOfficeTime: null,
+    steps: null,
     allergy: [],
     allergyNote: null,
     mood: null,
@@ -116,6 +121,7 @@ export function countFilled(input: RecordInput): { filled: number; total: number
     input.bowelMovement !== null,
     input.leaveHomeTime !== null,
     input.leaveOfficeTime !== null,
+    input.steps !== null,
     input.allergy.length > 0,
     input.mood !== null,
     input.liverCare.length > 0,
