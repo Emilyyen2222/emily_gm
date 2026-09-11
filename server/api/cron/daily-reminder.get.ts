@@ -8,26 +8,43 @@ import { LIVER_CARE_TOTAL } from '../../../shared/types/record'
  */
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
-
-  // 這是公開網址，沒有這道檢查任何人都能觸發推播
-  if (!config.cronSecret || getHeader(event, 'authorization') !== `Bearer ${config.cronSecret}`) {
-    throw createError({ statusCode: 401, statusMessage: '未授權' })
-  }
-
   const supabase = useSupabase()
+
+  const auth = getHeader(event, 'authorization')
+  const userAgent = getHeader(event, 'user-agent') ?? ''
+  const isVercelCron = userAgent.includes('vercel-cron')
+  const triggeredBy = isVercelCron ? 'vercel-cron' : '手動'
 
   // 一進來就先記一筆。Vercel 免費方案的 log 只留一小時，
   // 沒有這筆紀錄的話，隔天完全無法判斷「有跑但失敗」與「根本沒被觸發」的差別。
-  const triggeredBy = getHeader(event, 'user-agent')?.includes('vercel-cron') ? 'vercel-cron' : '手動'
-  const { data: run } = await supabase
-    .from('cron_runs')
-    .insert({ job: 'daily-reminder', triggered_by: triggeredBy })
-    .select('id')
-    .single()
+  //
+  // 刻意記在認證檢查「之前」：被自己的認證擋掉也是一種失敗，而且是最難察覺的
+  // 那一種——從外面看，它跟「完全沒被觸發」長得一模一樣。
+  // 但只記錄看起來像是 cron 嘗試的請求，避免路人亂打就灌爆這張表。
+  let runId: string | null = null
+  if (isVercelCron || auth) {
+    const { data } = await supabase
+      .from('cron_runs')
+      .insert({ job: 'daily-reminder', triggered_by: triggeredBy })
+      .select('id')
+      .single()
+    runId = data?.id ?? null
+  }
 
   const finish = async (fields: Record<string, unknown>) => {
-    if (!run?.id) return
-    await supabase.from('cron_runs').update({ finished_at: new Date().toISOString(), ...fields }).eq('id', run.id)
+    if (!runId) return
+    await supabase.from('cron_runs').update({ finished_at: new Date().toISOString(), ...fields }).eq('id', runId)
+  }
+
+  // Vercel 觸發 Cron 時會自動帶上 Authorization: Bearer <CRON_SECRET>，
+  // 但只有在環境變數「剛好叫 CRON_SECRET」的時候才會這麼做。
+  // 我們原本只有 NUXT_CRON_SECRET（Nuxt runtimeConfig 的命名規則要求 NUXT_ 前綴），
+  // 所以 Vercel 送來的請求根本沒有 header，被自己的認證擋在門外。
+  // 兩個名字都接受，手動 curl 與 Vercel 自動觸發就都能通過。
+  const accepted = [config.cronSecret, process.env.CRON_SECRET].filter(Boolean) as string[]
+  if (!accepted.length || !accepted.some((secret) => auth === `Bearer ${secret}`)) {
+    await finish({ status: 'unauthorized', note: `認證失敗（來源：${triggeredBy}，有帶 header：${Boolean(auth)}）` })
+    throw createError({ statusCode: 401, statusMessage: '未授權' })
   }
 
   const { data: chats, error } = await supabase.from('chats').select('chat_id').eq('active', true)
