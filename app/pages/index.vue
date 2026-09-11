@@ -13,7 +13,10 @@ import {
 } from '#shared/types/record'
 import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
 
-const { ready, initError, displayName, canShareToChat, isOneToOne, contextType, chatId, init, getIdToken, sendToChat, close } = useLiff()
+const { ready, initError, displayName, canShareToChat, isOneToOne, contextType, chatId, debugInfo, init, getIdToken, sendToChat, close } = useLiff()
+
+const route = useRoute()
+const showDebug = computed(() => route.query.debug === '1')
 
 /** 不能分享時要說明原因 —— 勾選框默默消失，使用者無從得知為什麼 */
 const noShareReason = computed(() => {
@@ -257,6 +260,11 @@ async function submit() {
             </span>
           </span>
         </label>
+
+        <pre
+          v-if="showDebug"
+          class="overflow-x-auto rounded-2xl border-2 border-brand-gold bg-white p-3 text-[11px] leading-relaxed text-brand-brown"
+        >{{ JSON.stringify({ ...debugInfo, canShareToChat, formShared: form.shared, chatId }, null, 1) }}</pre>
 
         <p v-if="noShareReason" class="rounded-2xl border border-brand-border bg-white p-4 text-caption text-brand-brown-light">
           {{ noShareReason }}
