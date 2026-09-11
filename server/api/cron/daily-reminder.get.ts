@@ -15,13 +15,31 @@ export default defineEventHandler(async (event) => {
   }
 
   const supabase = useSupabase()
+
+  // 一進來就先記一筆。Vercel 免費方案的 log 只留一小時，
+  // 沒有這筆紀錄的話，隔天完全無法判斷「有跑但失敗」與「根本沒被觸發」的差別。
+  const triggeredBy = getHeader(event, 'user-agent')?.includes('vercel-cron') ? 'vercel-cron' : '手動'
+  const { data: run } = await supabase
+    .from('cron_runs')
+    .insert({ job: 'daily-reminder', triggered_by: triggeredBy })
+    .select('id')
+    .single()
+
+  const finish = async (fields: Record<string, unknown>) => {
+    if (!run?.id) return
+    await supabase.from('cron_runs').update({ finished_at: new Date().toISOString(), ...fields }).eq('id', run.id)
+  }
+
   const { data: chats, error } = await supabase.from('chats').select('chat_id').eq('active', true)
   if (error) {
+    await finish({ status: 'failed', note: `讀取推播目標失敗：${error.message}` })
     throw createError({ statusCode: 500, statusMessage: `讀取推播目標失敗：${error.message}` })
   }
 
   if (!chats?.length) {
-    return { sent: 0, weekly: false, note: '尚無已登記的群組，請先把 bot 邀請進群組' }
+    const note = '尚無已登記的群組，請先把 bot 邀請進群組'
+    await finish({ status: 'done', note })
+    return { sent: 0, weekly: false, note }
   }
 
   const url = liffUrl()
@@ -43,6 +61,14 @@ export default defineEventHandler(async (event) => {
       failed.push(chat.chat_id)
     }
   }
+
+  await finish({
+    status: failed.length ? 'partial' : 'done',
+    sent,
+    failed: failed.length,
+    weekly: Boolean(weeklyMessage),
+    note: failed.length ? `推播失敗的聊天室：${failed.join(', ')}` : null,
+  })
 
   return { sent, failed, weekly: Boolean(weeklyMessage) }
 })
