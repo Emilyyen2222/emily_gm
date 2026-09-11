@@ -165,7 +165,7 @@ async function submit() {
           </div>
         </FormSection>
 
-        <FormSection title="排便">
+        <FormSection title="今天排便">
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="opt in [{ label: '有', value: true }, { label: '沒有', value: false }]"
