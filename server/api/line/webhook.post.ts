@@ -63,8 +63,9 @@ export default defineEventHandler(async (event) => {
       continue
     }
 
-    // 文字訊息：一對一一律回應，群組只在「訊息剛好是關鍵字」或「被 @ 到」時回應。
-    // 群組裡大家整天在聊天，bot 每句都插嘴會很快被踢出去。
+    // 文字訊息：一對一一律回應；群組只在被 @ 到時回應。
+    // 不接受群組裡的裸關鍵字——「今天」「本週」在日常對話太常見，
+    // 誤觸會把當事人的紀錄連同備註貼進群組。
     if (ev.type === 'message' && ev.message?.type === 'text' && ev.replyToken) {
       const isDirect = source.type === 'user'
       const mentionees: any[] = ev.message.mention?.mentionees ?? []
@@ -73,7 +74,7 @@ export default defineEventHandler(async (event) => {
 
       const text = stripMentions(String(ev.message.text ?? ''), mentionees)
       const reply = await buildTextReply(text, source.userId, source.groupId ?? source.roomId, {
-        respondToUnknown: isDirect || mentioned,
+        addressed: isDirect || mentioned,
       })
 
       if (reply) {

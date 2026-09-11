@@ -74,7 +74,7 @@ function row(label: string, value: string) {
  * 刻意不先講「我看不懂」—— 使用者打了看不懂的字不是做錯事，
  * 直接把能用的東西攤開來比先指出對方的錯誤有用。
  */
-export function helpCard(url: string) {
+export function helpCard(url: string, inGroup = false) {
   return {
     type: 'flex',
     altText: '可以跟我說：記錄 / 今天 / 本週 / 排行',
@@ -93,7 +93,15 @@ export function helpCard(url: string) {
             row('排行', '看群組排行'),
           ],
         },
-        { type: 'text', text: '或直接點下面的選單', size: 'xs', color: C.brownLight, margin: 'lg', wrap: true },
+        {
+          // 圖文選單只存在於一對一聊天室，群組沒有，所以那句話在群組是錯的
+          type: 'text',
+          text: inGroup ? '在群組要 @ 我才會回應' : '或直接點下面的選單',
+          size: 'xs',
+          color: C.brownLight,
+          margin: 'lg',
+          wrap: true,
+        },
       ],
       button('開始記錄', url),
     ),

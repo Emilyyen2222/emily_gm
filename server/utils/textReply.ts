@@ -3,24 +3,30 @@ import { rowToRecord } from './records'
 /**
  * 把使用者的文字訊息對應到回覆卡片。
  *
- * 群組裡 bot 會收到所有訊息，所以比對刻意嚴格：整句去除空白後要剛好等於
- * 關鍵字才算。respondToUnknown 為 true（一對一，或群組裡被 @ 到）時，
- * 看不懂的訊息才回說明卡；否則一律回 null，代表保持安靜。
+ * 群組裡一律只在被 @ 到時才回應，不接受裸關鍵字。原因是「今天」「本週」
+ * 在日常對話裡太常見 —— 有人隨口打了「今天」兩個字，bot 就會把那個人的
+ * 健康紀錄連同備註貼進群組，那是非預期的隱私外洩，而且觸發門檻低到一定會發生。
+ *
+ * 一對一沒有這個風險（只有本人看得到），所以任何訊息都會回應。
  */
 export async function buildTextReply(
   rawText: string,
   userId: string | undefined,
   chatId: string | undefined,
-  opts: { respondToUnknown: boolean },
+  opts: { addressed: boolean },
 ): Promise<unknown | null> {
+  // 群組裡沒被 @ 到就徹底安靜
+  if (!opts.addressed) return null
+
+  const inGroup = Boolean(chatId)
   const url = liffUrl()
   const text = rawText.trim()
 
   if (/^(記錄|紀錄|記|填|填寫)$/.test(text)) return startCard(url)
-  if (/^(說明|幫助|help|？|\?)$/i.test(text)) return helpCard(url)
+  if (/^(說明|幫助|help|？|\?)$/i.test(text)) return helpCard(url, inGroup)
 
   if (/^(今天|今日)$/.test(text)) {
-    if (!userId) return helpCard(url)
+    if (!userId) return helpCard(url, inGroup)
     const supabase = useSupabase()
     const { data } = await supabase
       .from('records')
@@ -32,7 +38,7 @@ export async function buildTextReply(
   }
 
   if (/^(本週|這週|這周|本周)$/.test(text)) {
-    if (!userId) return helpCard(url)
+    if (!userId) return helpCard(url, inGroup)
     const today = taipeiToday()
     const from = addDays(today, -6)
     const supabase = useSupabase()
@@ -48,9 +54,9 @@ export async function buildTextReply(
 
   if (/^(排行|排名)$/.test(text)) {
     // 排行是群組功能，一對一看自己的排行沒有意義
-    if (!chatId) return helpCard(url)
-    return (await buildWeeklyReport(taipeiToday())) ?? helpCard(url)
+    if (!chatId) return helpCard(url, inGroup)
+    return (await buildWeeklyReport(taipeiToday())) ?? helpCard(url, inGroup)
   }
 
-  return opts.respondToUnknown ? helpCard(url) : null
+  return helpCard(url, inGroup)
 }
