@@ -1,0 +1,20 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Huninn&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:2500px; height:843px; background:#FFF8EF; font-family:'Huninn','PingFang TC',sans-serif;
+         display:grid; grid-template-columns:repeat(3,1fr); }
+  .cell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:48px;
+          position:relative; }
+  .cell + .cell::before { content:''; position:absolute; left:0; top:140px; bottom:140px;
+                          width:4px; background:#EAD7BD; border-radius:2px; }
+  .icon { font-size:210px; line-height:1; }
+  .label { font-size:104px; color:#3A2513; font-weight:700; letter-spacing:2px; }
+  .sub { font-size:52px; color:#6F5B49; margin-top:-28px; }
+</style></head>
+<body>
+  <div class="cell"><div class="icon">📝</div><div class="label">今天記錄</div></div>
+  <div class="cell"><div class="icon">📊</div><div class="label">我的紀錄</div></div>
+  <div class="cell"><div class="icon">💡</div><div class="label">說明</div></div>
+</body></html>
