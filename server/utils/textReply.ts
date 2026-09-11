@@ -22,6 +22,9 @@ export async function buildTextReply(
   const url = liffUrl()
   const text = rawText.trim()
 
+  // 「拍拍 XXX」是卡片按鈕送出的訊息，本身就是完整的表達，bot 不需要接話
+  if (/^拍拍/.test(text)) return null
+
   if (/^(記錄|紀錄|記|填|填寫)$/.test(text)) return startCard(url)
   if (/^(說明|幫助|help|？|\?)$/i.test(text)) return helpCard(url, inGroup)
 

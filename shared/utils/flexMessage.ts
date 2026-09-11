@@ -127,7 +127,13 @@ export function buildDailyFlexMessage(record: DailyRecord) {
         contents: body,
       },
       // 「拍拍」把單向的廣播變成雙向。互相監督的關鍵其實不是看到數字，
-      // 是知道有人看到了你。走 postback 由 bot 用 reply 回應，不計入推播額度。
+      // 是知道有人看到了你。
+      //
+      // 用 message 而非 postback：這張卡片是透過 liff.sendMessages() 以
+      // 「使用者的名義」發出的，而 postback 是專屬機器人訊息的機制，
+      // 使用者發出的訊息帶 postback 會被 LINE 以 INVALID_MESSAGE 整個拒收。
+      // 改用 message 之後，點下去就是由按的人說出「拍拍 XXX」——
+      // 訊息本身就是那個拍拍，連 bot 都不需要介入。
       footer: {
         type: 'box',
         layout: 'vertical',
@@ -141,10 +147,9 @@ export function buildDailyFlexMessage(record: DailyRecord) {
             color: '#FCDC94',
             height: 'sm',
             action: {
-              type: 'postback',
+              type: 'message',
               label: '拍拍',
-              data: `action=pat&name=${encodeURIComponent(name)}`,
-              displayText: `拍拍 ${name}`,
+              text: `拍拍 ${name} 👏`,
             },
           },
         ],

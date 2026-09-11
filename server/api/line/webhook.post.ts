@@ -87,30 +87,6 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // 「拍拍」按鈕
-    if (ev.type === 'postback' && ev.replyToken) {
-      const data = new URLSearchParams(ev.postback?.data ?? '')
-      if (data.get('action') === 'pat') {
-        const target = data.get('name') ?? '對方'
-        let patter = '有人'
-        try {
-          if (source.userId) {
-            const profile = await getProfile(source.userId, source.groupId)
-            if (profile?.displayName) patter = profile.displayName
-          }
-        } catch {
-          // 取不到暱稱不影響功能，用「有人」代替
-        }
-        try {
-          await replyMessage(ev.replyToken, [{ type: 'text', text: `${patter} 拍拍了 ${target} 👏` }])
-          handled.push('postback: 已回覆拍拍')
-        } catch (err: any) {
-          handled.push(`postback: 回覆失敗 ${describe(err)}`)
-        }
-      }
-      continue
-    }
-
     const chatId: string | undefined = source.groupId ?? source.roomId
     if (!chatId) {
       handled.push(`${ev.type}: 沒有 groupId／roomId，略過`)
