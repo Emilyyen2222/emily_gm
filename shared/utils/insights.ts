@@ -1,4 +1,4 @@
-import { LIVER_CARE_OPTIONS, MOOD_SCORE, STEPS_GOAL, type DailyRecord } from '../types/record'
+import { MOOD_SCORE, STEPS_GOAL, type DailyRecord } from '../types/record'
 
 /**
  * 關聯洞察：把紀錄依某個條件分成兩群，比較兩群的平均值。
@@ -75,8 +75,11 @@ function compare(
 export function buildInsights(records: DailyRecord[]): Insight[] {
   const insights: Insight[] = []
 
-  // 每個自我照顧習慣各比一次，看它跟睡眠品質的關係
-  for (const habit of LIVER_CARE_OPTIONS) {
+  // 每個自我照顧習慣各比一次，看它跟睡眠品質的關係。
+  // 項目取自這個人實際記錄過的內容，而不是全域清單 ——
+  // 每個人選的項目不同，拿別人的項目來比只會得到一堆空結果。
+  const habits = [...new Set(records.flatMap((r) => r.liverCare))]
+  for (const habit of habits) {
     const result = compare(records, 'sleepScore', (r) => r.liverCare.includes(habit), {
       title: `${habit}的日子，睡眠品質`,
       with: `有${habit}`,

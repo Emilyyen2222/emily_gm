@@ -7,12 +7,36 @@ export const ALLERGY_OPTIONS = ['無', '鼻塞', '眼睛癢', '皮膚癢'] as co
 export type AllergyOption = (typeof ALLERGY_OPTIONS)[number]
 
 /**
- * 自我照顧的每日習慣。
- * 2026-09 更新：原本是「昨晚 11 點前入睡／無飲酒／早上喝溫水／吃保健食品」，
- * 改成 Emily 實際想追蹤的三項經絡與保健習慣。
+ * 自我照顧的可選項目池。
+ *
+ * 2026-09 改為每人自選 2–5 項：用一份固定清單定義「照顧自己該長什麼樣子」
+ * 對每個人都不準——有人在乎經絡保健，有人在乎冥想寫日誌。清單越長，
+ * 每個人看到的無關項目就越多。改成自選之後，達成率才真的有意義。
  */
-export const LIVER_CARE_OPTIONS = ['敲肝經膽經', '吃膠原蛋白', '吃保健食品'] as const
-export type LiverCareOption = (typeof LIVER_CARE_OPTIONS)[number]
+export const HABIT_POOL = [
+  '敲肝經膽經',
+  '吃膠原蛋白',
+  '吃保健食品',
+  '感恩冥想',
+  '寫日誌',
+  '伸展',
+  '早睡',
+  '喝足量的水',
+  '沒喝酒',
+  '運動',
+  '沒生氣',
+] as const
+export type Habit = (typeof HABIT_POOL)[number]
+
+/** 尚未設定過的人，先用原本的三項當預設 */
+export const DEFAULT_HABITS: string[] = ['敲肝經膽經', '吃膠原蛋白', '吃保健食品']
+
+export const HABIT_MIN = 2
+export const HABIT_MAX = 5
+
+/** 睡眠的五個等級。無 0：睡了就不可能是 0%，而且趨勢圖會直接掉到底，看起來像災難。
+ *  這五個值與舊資料一致（當初由 1–5 分換算而來）。 */
+export const SLEEP_LEVELS = [20, 40, 60, 80, 100] as const
 
 export const MOOD_OPTIONS = ['😊', '😐', '😔', '😡'] as const
 export type MoodOption = (typeof MOOD_OPTIONS)[number]
@@ -28,8 +52,7 @@ export const MOOD_SCORE: Record<string, number> = {
 /** 走路達標的門檻，用於顯示與關聯分析 */
 export const STEPS_GOAL = 5000
 
-/** 護肝總項數，用於計算達標率 */
-export const LIVER_CARE_TOTAL = LIVER_CARE_OPTIONS.length
+
 
 /** 備註欄位的長度上限 */
 export const NOTE_MAX_LENGTH = 200
@@ -74,8 +97,10 @@ export interface SubmitRecordPayload extends RecordInput {
 export interface DailyRecord extends RecordInput {
   recordDate: string
   displayName: string | null
-  /** 自我照顧達標數，由後端計算 */
+  /** 自我照顧達成數，由後端計算 */
   liverScore: number
+  /** 當下那筆紀錄的分母（使用者當時選了幾項）。存下來，日後改設定不會讓歷史失真 */
+  liverTotal: number
   updatedAt: string | null
 }
 
@@ -137,4 +162,19 @@ export function computeSleepHours(bedTime: string | null, wakeTime: string | nul
   let diff = toMinutes(wakeTime) - toMinutes(bedTime)
   if (diff <= 0) diff += 24 * 60
   return Math.round((diff / 60) * 10) / 10
+}
+
+/** 自我照顧達成率。分母用紀錄當下存下來的值，不受日後改設定影響 */
+export function careRate(record: { liverScore: number; liverTotal: number }): number {
+  return record.liverTotal > 0 ? Math.round((record.liverScore / record.liverTotal) * 100) : 0
+}
+
+/** 清洗使用者選的項目：必須在項目池內、去重、數量在 2–5 之間 */
+export function sanitizeHabits(input: unknown): string[] | null {
+  if (!Array.isArray(input)) return null
+  const pool = HABIT_POOL as readonly string[]
+  const picked = [...new Set(input.filter((v): v is string => typeof v === 'string' && pool.includes(v)))]
+  if (picked.length < HABIT_MIN || picked.length > HABIT_MAX) return null
+  // 依照項目池的順序排列，畫面上才不會因為點選順序不同而跳來跳去
+  return pool.filter((h) => picked.includes(h))
 }

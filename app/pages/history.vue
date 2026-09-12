@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LIVER_CARE_TOTAL, MOOD_SCORE, type DailyRecord, type RecordsResponse } from '#shared/types/record'
+import { MOOD_SCORE, careRate, type DailyRecord, type RecordsResponse } from '#shared/types/record'
 import { INSIGHT_MIN_RECORDS, buildInsights } from '#shared/utils/insights'
 
 const { ready, initError, init, getIdToken } = useLiff()
@@ -40,8 +40,8 @@ const avgSleep = computed(() => {
 
 const avgCare = computed(() => {
   if (!records.value.length) return null
-  const total = records.value.reduce((sum, r) => sum + r.liverScore, 0)
-  return Math.round((total / (records.value.length * LIVER_CARE_TOTAL)) * 100)
+  const total = records.value.reduce((sum, r) => sum + careRate(r), 0)
+  return Math.round(total / records.value.length)
 })
 
 const avgMood = computed(() => {
@@ -130,7 +130,7 @@ function shortDate(date: string) {
             <TrendChart
               :points="chronological.map((r) => ({
                 date: r.recordDate,
-                value: Math.round((r.liverScore / LIVER_CARE_TOTAL) * 100),
+                value: careRate(r),
               }))"
             />
           </section>

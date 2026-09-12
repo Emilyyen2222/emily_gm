@@ -1,6 +1,6 @@
 import {
   ALLERGY_OPTIONS,
-  LIVER_CARE_OPTIONS,
+  DEFAULT_HABITS,
   MOOD_OPTIONS,
   NOTE_MAX_LENGTH,
   computeSleepHours,
@@ -31,6 +31,7 @@ export function rowToRecord(row: Record<string, any>): DailyRecord {
     privateNote: row.private_note ?? null,
     liverCare: row.liver_care ?? [],
     liverScore: row.liver_score ?? 0,
+    liverTotal: row.liver_total ?? DEFAULT_HABITS.length,
     shared: row.shared ?? false,
     sourceChatId: row.source_chat_id ?? null,
     updatedAt: row.updated_at ?? null,
@@ -54,8 +55,10 @@ function clampScore(value: unknown): number | null {
  * 清洗前端送來的表單內容。
  * 不信任任何前端數值，包含護肝分數 —— 那是後端依 liverCare 自行算出來的。
  */
-export function sanitizeRecordInput(input: Partial<RecordInput>) {
-  const liverCare = whitelist(input.liverCare, LIVER_CARE_OPTIONS)
+export function sanitizeRecordInput(input: Partial<RecordInput>, habits: string[]) {
+  // 白名單是「這個人自己選的項目」，不是全域清單 ——
+  // 否則有人送出池子裡但自己沒選的項目，達成數會超過分母
+  const liverCare = whitelist(input.liverCare, habits)
   const allergy = whitelist(input.allergy, ALLERGY_OPTIONS)
 
   const bedTime = isTimeString(input.bedTime) ? input.bedTime : null
@@ -83,6 +86,7 @@ export function sanitizeRecordInput(input: Partial<RecordInput>) {
     privateNote: cleanNote(input.privateNote),
     liverCare,
     liverScore: liverCare.length,
+    liverTotal: habits.length,
     shared: input.shared === true,
     sourceChatId: typeof input.sourceChatId === 'string' && input.sourceChatId ? input.sourceChatId : null,
   }

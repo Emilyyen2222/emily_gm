@@ -1,4 +1,4 @@
-import { LIVER_CARE_TOTAL, type DailyRecord } from '../types/record'
+import { careRate, type DailyRecord } from '../types/record'
 
 // 與 tailwind.config.ts 同一套色票（SugarTopia 色系）。
 // Flex Message 只吃 hex 字串，無法引用 Tailwind class，所以在這裡複寫一份。
@@ -27,7 +27,7 @@ const NOTE_PREVIEW_LENGTH = 60
  */
 export function buildDailyFlexMessage(record: DailyRecord) {
   const name = record.displayName ?? '某位夥伴'
-  const percent = Math.round((record.liverScore / LIVER_CARE_TOTAL) * 100)
+  const percent = careRate(record)
 
   const notes = [
     { label: '夢', value: record.sleepNote },
@@ -56,8 +56,13 @@ export function buildDailyFlexMessage(record: DailyRecord) {
       contents: [
         row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore}%`),
         row('心情', record.mood ?? '－'),
-        row('自我照顧', `${record.liverScore} / ${LIVER_CARE_TOTAL}`),
+        row('自我照顧', `${record.liverScore} / ${record.liverTotal}`),
         ...(record.steps === null ? [] : [row('步數', `${record.steps.toLocaleString()} 步`)]),
+        // 每個人選的項目不同，只看「2 / 3」不知道是哪兩項，
+        // 而別人做了什麼本來就是群組裡最有意思的資訊
+        ...(record.liverCare.length
+          ? [{ type: 'text', text: record.liverCare.join('、'), size: 'xs', color: C.brownLight, wrap: true, align: 'end' }]
+          : []),
       ],
     },
   ]
@@ -98,7 +103,7 @@ export function buildDailyFlexMessage(record: DailyRecord) {
     layout: 'horizontal',
     margin: 'lg',
     spacing: 'xs',
-    contents: Array.from({ length: LIVER_CARE_TOTAL }, (_, i) => ({
+    contents: Array.from({ length: Math.max(1, record.liverTotal) }, (_, i) => ({
       type: 'box',
       layout: 'vertical',
       height: '6px',

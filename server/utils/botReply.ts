@@ -1,4 +1,4 @@
-import { LIVER_CARE_TOTAL, MOOD_SCORE, STEPS_GOAL, type DailyRecord } from '../../shared/types/record'
+import { MOOD_SCORE, STEPS_GOAL, careRate, type DailyRecord } from '../../shared/types/record'
 
 const C = {
   orange: '#F9A726',
@@ -175,12 +175,8 @@ export function summarise(records: DailyRecord[]) {
   const avg = (nums: number[]) => (nums.length ? Math.round(nums.reduce((a, b) => a + b, 0) / nums.length) : null)
   return {
     sleep: avg(records.map((r) => r.sleepScore).filter((n): n is number => n !== null)),
-    care: records.length
-      ? Math.round((records.reduce((sum, r) => sum + r.liverScore, 0) / (records.length * LIVER_CARE_TOTAL)) * 100)
-      : null,
+    care: records.length ? avg(records.map(careRate)) : null,
     steps: avg(records.map((r) => r.steps).filter((n): n is number => n !== null)),
     days: records.length,
   }
 }
-
-export { MOOD_SCORE, STEPS_GOAL }

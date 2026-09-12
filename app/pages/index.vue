@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import {
   ALLERGY_OPTIONS,
-  LIVER_CARE_OPTIONS,
-  LIVER_CARE_TOTAL,
   MOOD_OPTIONS,
   STEPS_GOAL,
   computeSleepHours,
@@ -31,7 +29,11 @@ const prefillFailed = ref(false)
 const isUpdate = ref(false)
 const savedAt = ref<string | null>(null)
 
-const liverPercent = computed(() => Math.round((form.value.liverCare.length / LIVER_CARE_TOTAL) * 100))
+/** 這個人自己選的自我照顧項目。還沒設定過的人會先被帶去設定頁 */
+const habits = ref<string[]>([])
+const liverPercent = computed(() =>
+  habits.value.length ? Math.round((form.value.liverCare.length / habits.value.length) * 100) : 0,
+)
 const progress = computed(() => countFilled(form.value))
 
 /** 睡眠時數由入睡與起床時間即時算出，讓使用者填完馬上看到 */
@@ -59,9 +61,20 @@ onMounted(async () => {
   form.value.shared = canShareToChat.value
   form.value.sourceChatId = chatId.value
 
-  // 今天填過就把內容帶回來，讓使用者是「補完／修改」而不是重填一次
   try {
     const idToken = await getIdToken()
+
+    // 先確認項目設定。沒設定過的人直接帶去設定頁 ——
+    // 讓人先看到一份不屬於自己的清單再去改，比一開始就選還難懂。
+    const habitData = await $fetch<{ habits: string[] | null }>('/api/habits', {
+      headers: { 'x-liff-id-token': idToken },
+    })
+    if (!habitData.habits) {
+      await navigateTo('/habits?first=1')
+      return
+    }
+    habits.value = habitData.habits
+
     const data = await $fetch<RecordsResponse>('/api/records/me', {
       query: { days: 1 },
       headers: { 'x-liff-id-token': idToken },
@@ -251,7 +264,10 @@ async function submit() {
         </FormSection>
 
         <FormSection title="自我照顧" :badge="`${liverPercent}%`">
-          <ChipMultiSelect v-model="form.liverCare" :options="LIVER_CARE_OPTIONS" />
+          <ChipMultiSelect v-model="form.liverCare" :options="habits" />
+          <NuxtLink to="/habits" class="mt-3 block text-caption text-brand-orange underline">
+            這些是你選的項目，可以修改
+          </NuxtLink>
         </FormSection>
 
         <FormSection title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">

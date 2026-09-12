@@ -11,7 +11,8 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
   const body = await readBody<Partial<SubmitRecordPayload>>(event)
 
   const { userId, displayName } = await verifyIdToken(body?.idToken)
-  const input = sanitizeRecordInput(body ?? {})
+  const habits = await getHabits(userId)
+  const input = sanitizeRecordInput(body ?? {}, habits)
 
   // 日期一律由後端以台北時區決定，不接受前端傳入
   const recordDate = taipeiToday()
@@ -44,6 +45,7 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
         private_note: input.privateNote,
         liver_care: input.liverCare,
         liver_score: input.liverScore,
+        liver_total: input.liverTotal,
         shared: input.shared,
         source_chat_id: input.sourceChatId,
         // updated_at 的 default 只在 insert 時生效，更新時要自己帶
