@@ -15,8 +15,12 @@ import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
 
 const { ready, initError, displayName, canShareToChat, isOneToOne, contextType, chatId, debugInfo, init, getIdToken, sendToChat, close } = useLiff()
 
+// 暫時預設顯示：帶參數的網址無法從圖文選單開啟，導致一直拿不到現場資訊。
+// 問題釐清後移除。
 const route = useRoute()
-const showDebug = computed(() => route.query.debug === '1')
+const showDebug = computed(() => route.query.debug !== '0')
+const submitLog = ref<string[]>([])
+const log = (line: string) => submitLog.value.push(`${new Date().toLocaleTimeString('zh-TW')} ${line}`)
 
 /** 不能分享時要說明原因 —— 勾選框默默消失，使用者無從得知為什麼 */
 const noShareReason = computed(() => {
@@ -89,20 +93,29 @@ async function submit() {
   if (pending.value) return
   pending.value = true
   submitError.value = null
+  submitLog.value = []
 
   try {
+    log('開始送出')
     const idToken = await getIdToken()
+    log('取得 idToken')
     const { record } = await $fetch<SubmitRecordResponse>('/api/records', {
       method: 'POST',
       body: { ...form.value, idToken },
     })
 
+    log(`資料已寫入。shared=${form.value.shared} canShare=${canShareToChat.value}`)
+
     if (form.value.shared && canShareToChat.value) {
       try {
+        log('準備呼叫 sendMessages')
         await sendToChat(buildDailyFlexMessage({ ...record, displayName: record.displayName ?? displayName.value }))
+        log('sendMessages 已完成（未拋錯）')
         close()
+        log('已呼叫 closeWindow')
         return
       } catch (err: any) {
+        log(`sendMessages 失敗：${err?.code ?? ''} ${err?.message ?? err}`)
         // 資料已經寫進去了，只有卡片沒發出去。分開講清楚，
         // 否則使用者會以為整筆都失敗而重填一次。
         isUpdate.value = true
@@ -113,9 +126,11 @@ async function submit() {
     }
 
     // 沒有要分享時不關閉視窗，讓使用者知道存好了、還能繼續補其他欄位
+    log('走的是「不分享」那條路')
     isUpdate.value = true
     savedAt.value = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
   } catch (err: any) {
+    log(`整體失敗：${err?.message ?? err}`)
     submitError.value = err?.data?.statusMessage ?? err?.message ?? '送出失敗，請稍後再試'
   } finally {
     pending.value = false
@@ -273,7 +288,8 @@ async function submit() {
         <pre
           v-if="showDebug"
           class="overflow-x-auto rounded-2xl border-2 border-brand-gold bg-white p-3 text-[11px] leading-relaxed text-brand-brown"
-        >{{ JSON.stringify({ ...debugInfo, canShareToChat, formShared: form.shared, chatId }, null, 1) }}</pre>
+        >{{ JSON.stringify({ ...debugInfo, canShareToChat, formShared: form.shared, chatId }, null, 1) }}
+{{ submitLog.join('\n') }}</pre>
 
         <p v-if="noShareReason" class="rounded-2xl border border-brand-border bg-white p-4 text-caption text-brand-brown-light">
           {{ noShareReason }}

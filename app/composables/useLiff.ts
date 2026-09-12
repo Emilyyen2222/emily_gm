@@ -79,7 +79,10 @@ export function useLiff() {
   }
 
   async function sendToChat(message: unknown) {
-    if (!canShareToChat.value) return
+    // 原本這裡靜默 return，讓「沒發出去」看起來跟「發出去了」一模一樣。
+    // 改成拋錯，呼叫端才有辦法分辨。
+    if (!canShareToChat.value) throw new Error('這個情境不支援分享（context=' + contextType.value + '）')
+    if (!liff.isInClient()) throw new Error('不在 LINE 內建瀏覽器中，無法發送訊息')
     await liff.sendMessages([message as never])
   }
 
