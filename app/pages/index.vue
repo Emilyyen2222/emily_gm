@@ -26,6 +26,7 @@ const form = ref(emptyRecordInput())
 const loading = ref(true)
 const pending = ref(false)
 const submitError = ref<string | null>(null)
+const justShared = ref(false)
 const prefillFailed = ref(false)
 const isUpdate = ref(false)
 const savedAt = ref<string | null>(null)
@@ -97,7 +98,10 @@ async function submit() {
     if (form.value.shared && canShareToChat.value) {
       try {
         await sendToChat(buildDailyFlexMessage({ ...record, displayName: record.displayName ?? displayName.value }))
-        close()
+        // 先顯示成功狀態再關閉。原本是送出後立刻關窗，畫面一閃就結束，
+        // 使用者會覺得「按了沒反應」——尤其資料沒變動時更沒有任何變化可看。
+        justShared.value = true
+        setTimeout(close, 900)
         return
       } catch (err: any) {
         // 資料已經寫進去了，只有卡片沒發出去。分開講清楚，
@@ -284,11 +288,12 @@ async function submit() {
       </p>
       <button
         type="button"
-        :disabled="pending"
+        :disabled="pending || justShared"
         class="mx-auto flex h-14 w-full max-w-lg items-center justify-center rounded-2xl bg-brand-orange text-body-lg font-bold text-white transition active:scale-[0.99] active:bg-brand-orange-dark disabled:opacity-50"
         @click="submit"
       >
         {{ pending ? '儲存中…'
+          : justShared ? '完成'
           : form.shared && canShareToChat ? (isOneToOne ? '儲存並留下卡片' : '儲存並分享到群組')
           : isUpdate ? '更新紀錄' : '儲存' }}
       </button>
