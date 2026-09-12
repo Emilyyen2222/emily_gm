@@ -12,6 +12,8 @@ export function useLiff() {
   const displayName = useState<string | null>('liff-name', () => null)
   const contextType = useState<ChatContextType>('liff-context', () => 'none')
   const chatId = useState<string | null>('liff-chat-id', () => null)
+  /** 是否在 LINE 內建瀏覽器中。桌機版與外部瀏覽器都發不了訊息 */
+  const inClient = useState('liff-in-client', () => false)
 
   /**
    * 能不能把卡片發回開啟 LIFF 的那個聊天室。
@@ -21,7 +23,9 @@ export function useLiff() {
    * 外部瀏覽器與無情境（none）則不支援 sendMessages。
    */
   const canShareToChat = computed(
-    () => contextType.value === 'group' || contextType.value === 'room' || contextType.value === 'utou',
+    () =>
+      inClient.value &&
+      (contextType.value === 'group' || contextType.value === 'room' || contextType.value === 'utou'),
   )
 
   /** 一對一情境的文案要跟群組不同 —— 那裡沒有「其他人」 */
@@ -45,6 +49,7 @@ export function useLiff() {
         return
       }
 
+      inClient.value = liff.isInClient()
       const context = liff.getContext()
       contextType.value = (context?.type as ChatContextType) ?? 'none'
       chatId.value = context?.groupId ?? context?.roomId ?? null
@@ -78,7 +83,7 @@ export function useLiff() {
 
   return {
     ready, initError, displayName, contextType, chatId,
-    canShareToChat, isOneToOne,
+    canShareToChat, isOneToOne, inClient,
     init, getIdToken, sendToChat, close,
   }
 }

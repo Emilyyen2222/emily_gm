@@ -13,12 +13,12 @@ import {
 } from '#shared/types/record'
 import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
 
-const { ready, initError, displayName, canShareToChat, isOneToOne, contextType, chatId, init, getIdToken, sendToChat, close } = useLiff()
+const { ready, initError, displayName, canShareToChat, isOneToOne, inClient, contextType, chatId, init, getIdToken, sendToChat, close } = useLiff()
 
 /** 不能分享時要說明原因 —— 勾選框默默消失，使用者無從得知為什麼 */
 const noShareReason = computed(() => {
   if (canShareToChat.value) return null
-  if (contextType.value === 'external') return '在 LINE 以外的瀏覽器開啟，只會儲存資料，不會發卡片。'
+  if (!inClient.value) return '在電腦或一般瀏覽器開啟時無法發送卡片，資料還是會存起來。想分享的話用手機的 LINE 開。'
   return '這次不是從聊天室開啟的，只會儲存資料。想分享的話，從群組或聊天室裡的連結進來。'
 })
 
