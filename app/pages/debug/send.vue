@@ -10,8 +10,8 @@ import { emptyRecordInput } from '#shared/types/record'
  * 只能在真實的 LIFF 環境裡實測。
  */
 const { ready, initError, canShareToChat, contextType, init } = useLiff()
-const results = ref<{ name: string; ok: boolean; error?: string }[]>([])
-const running = ref(false)
+const results = ref<Record<string, { ok: boolean; error?: string }>>({})
+const running = ref<string | null>(null)
 
 onMounted(() => init())
 
@@ -52,20 +52,18 @@ const variants: { name: string; message: any }[] = [
   { name: '5・完整卡片（含拍拍按鈕）', message: full },
 ]
 
-async function run() {
-  running.value = true
-  results.value = []
+// 一次只送一則。liff.sendMessages() 有速率限制，連續送會被 429 擋掉，
+// 那個錯誤會蓋掉我們真正想找的 INVALID_MESSAGE。
+async function send(v: { name: string; message: any }) {
+  running.value = v.name
   const liff = (await import('@line/liff')).default
-  for (const v of variants) {
-    try {
-      await liff.sendMessages([v.message])
-      results.value.push({ name: v.name, ok: true })
-    } catch (err: any) {
-      results.value.push({ name: v.name, ok: false, error: `${err?.code ?? ''} ${err?.message ?? err}` })
-      break // 第一個失敗的就是分界點，後面不用再送，也免得洗版
-    }
+  try {
+    await liff.sendMessages([v.message])
+    results.value = { ...results.value, [v.name]: { ok: true } }
+  } catch (err: any) {
+    results.value = { ...results.value, [v.name]: { ok: false, error: `${err?.code ?? ''} ${err?.status ?? ''} ${err?.message ?? err}` } }
   }
-  running.value = false
+  running.value = null
 }
 </script>
 
@@ -77,27 +75,28 @@ async function run() {
     </p>
     <p v-if="initError" class="mt-4 rounded-xl bg-red-50 p-3 text-body text-red-700">{{ initError }}</p>
 
-    <button
-      :disabled="!ready || running"
-      class="mt-5 h-14 w-full rounded-2xl bg-brand-orange text-body-lg font-bold text-white disabled:opacity-50"
-      @click="run"
-    >
-      {{ running ? '測試中…' : '開始依序送出' }}
-    </button>
+    <p class="mt-4 text-caption text-brand-brown-light">
+      一次按一顆，每顆之間等幾秒 —— 連續送會被 LINE 限流（429），
+      那個錯誤會蓋掉真正的原因。建議從最下面的 5 開始往上按。
+    </p>
 
-    <div v-if="results.length" class="mt-5 space-y-2">
-      <div
-        v-for="r in results"
-        :key="r.name"
-        class="rounded-xl border-2 p-3 text-body"
-        :class="r.ok ? 'border-brand-border bg-white text-brand-brown' : 'border-red-200 bg-red-50 text-red-700'"
-      >
-        <p class="font-bold">{{ r.ok ? '✓' : '✗' }} {{ r.name }}</p>
-        <p v-if="r.error" class="mt-1 break-all text-caption">{{ r.error }}</p>
+    <div class="mt-4 space-y-3">
+      <div v-for="v in variants" :key="v.name">
+        <button
+          :disabled="!ready || running !== null"
+          class="h-12 w-full rounded-xl border-2 border-brand-orange bg-white px-4 text-body font-bold text-brand-brown disabled:opacity-50"
+          @click="send(v)"
+        >
+          {{ running === v.name ? '送出中…' : v.name }}
+        </button>
+        <p
+          v-if="results[v.name]"
+          class="mt-1 break-all rounded-lg p-2 text-caption"
+          :class="results[v.name]!.ok ? 'bg-white text-brand-green' : 'bg-red-50 text-red-700'"
+        >
+          {{ results[v.name]!.ok ? '✓ 成功' : '✗ ' + results[v.name]!.error }}
+        </p>
       </div>
-      <p class="pt-2 text-caption text-brand-brown-light">
-        最後一個打勾的是安全的，打叉的那個就是問題所在。
-      </p>
     </div>
   </div>
 </template>
