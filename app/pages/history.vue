@@ -115,54 +115,24 @@ function shortDate(date: string) {
         <!-- 趨勢 -->
         <template v-if="tab === 'trend'">
           <section class="rounded-2xl border border-brand-border bg-white p-4">
-            <h2 class="mb-4 text-h3 font-bold text-brand-brown">睡眠品質</h2>
-            <!-- 長條與日期分成兩層：百分比高度需要父層有明確高度，
-                 把標籤放進同一個 flex 欄會讓父層變成 auto，長條就撐不出來 -->
-            <div class="flex h-32 items-end gap-2">
-              <!-- 外層負責平分寬度，內層限制長條粗細：資料只有兩三天時，
-                   不設上限的話每根會胖到佔滿三分之一的版面 -->
-              <div v-for="r in chronological" :key="r.recordDate" class="flex h-full flex-1 justify-center">
-                <div
-                  class="flex h-full w-full items-end overflow-hidden rounded bg-brand-panel/50"
-                  style="max-width: 22px"
-                  :title="`${r.recordDate}：${r.sleepScore ?? '未填'}%`"
-                >
-                  <div class="w-full rounded bg-brand-orange transition-all" :style="{ height: `${r.sleepScore ?? 0}%` }" />
-                </div>
-              </div>
+            <div class="mb-4 flex items-baseline justify-between">
+              <h2 class="text-h3 font-bold text-brand-brown">睡眠品質</h2>
+              <span class="text-body text-brand-brown-light">平均 {{ avgSleep ?? '－' }}%</span>
             </div>
-            <div class="mt-2 flex gap-2">
-              <span
-                v-for="r in chronological"
-                :key="r.recordDate"
-                class="flex-1 text-center text-caption text-brand-brown-light/70"
-              >{{ shortDate(r.recordDate) }}</span>
-            </div>
+            <TrendChart :points="chronological.map((r) => ({ date: r.recordDate, value: r.sleepScore }))" />
           </section>
 
           <section class="rounded-2xl border border-brand-border bg-white p-4">
-            <h2 class="mb-4 text-h3 font-bold text-brand-brown">自我照顧</h2>
-            <div class="flex h-32 items-end gap-2">
-              <div v-for="r in chronological" :key="r.recordDate" class="flex h-full flex-1 justify-center">
-                <div
-                  class="flex h-full w-full items-end overflow-hidden rounded bg-brand-panel/50"
-                  style="max-width: 22px"
-                  :title="`${r.recordDate}：${r.liverScore} / ${LIVER_CARE_TOTAL}`"
-                >
-                  <div
-                    class="w-full rounded bg-brand-gold transition-all"
-                    :style="{ height: `${(r.liverScore / LIVER_CARE_TOTAL) * 100}%` }"
-                  />
-                </div>
-              </div>
+            <div class="mb-4 flex items-baseline justify-between">
+              <h2 class="text-h3 font-bold text-brand-brown">自我照顧</h2>
+              <span class="text-body text-brand-brown-light">平均 {{ avgCare ?? '－' }}%</span>
             </div>
-            <div class="mt-2 flex gap-2">
-              <span
-                v-for="r in chronological"
-                :key="r.recordDate"
-                class="flex-1 text-center text-caption text-brand-brown-light/70"
-              >{{ shortDate(r.recordDate) }}</span>
-            </div>
+            <TrendChart
+              :points="chronological.map((r) => ({
+                date: r.recordDate,
+                value: Math.round((r.liverScore / LIVER_CARE_TOTAL) * 100),
+              }))"
+            />
           </section>
         </template>
 
