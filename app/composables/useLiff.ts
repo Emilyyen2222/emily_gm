@@ -12,8 +12,6 @@ export function useLiff() {
   const displayName = useState<string | null>('liff-name', () => null)
   const contextType = useState<ChatContextType>('liff-context', () => 'none')
   const chatId = useState<string | null>('liff-chat-id', () => null)
-  /** 診斷用：LIFF 實際回報的環境，只在網址帶 ?debug=1 時顯示 */
-  const debugInfo = useState<Record<string, unknown>>('liff-debug', () => ({}))
 
   /**
    * 能不能把卡片發回開啟 LIFF 的那個聊天室。
@@ -54,18 +52,6 @@ export function useLiff() {
       const profile = await liff.getProfile()
       displayName.value = profile.displayName
 
-      debugInfo.value = {
-        contextType: context?.type ?? null,
-        contextKeys: context ? Object.keys(context) : [],
-        groupId: (context as any)?.groupId ?? null,
-        roomId: (context as any)?.roomId ?? null,
-        utouId: (context as any)?.utouId ?? null,
-        isInClient: liff.isInClient(),
-        isApiAvailable_sendMessages: liff.isApiAvailable('shareTargetPicker'),
-        os: liff.getOS(),
-        version: liff.getVersion(),
-      }
-
       ready.value = true
     } catch (err) {
       initError.value = err instanceof Error ? err.message : 'LIFF 初始化失敗'
@@ -92,7 +78,7 @@ export function useLiff() {
 
   return {
     ready, initError, displayName, contextType, chatId,
-    canShareToChat, isOneToOne, debugInfo,
+    canShareToChat, isOneToOne,
     init, getIdToken, sendToChat, close,
   }
 }

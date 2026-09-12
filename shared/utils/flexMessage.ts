@@ -19,6 +19,11 @@ const NOTE_PREVIEW_LENGTH = 60
  *
  * 公開範圍：除了 privateNote（「只給自己的」），其餘欄位都會出現在這裡。
  * privateNote 是使用者唯一確定不會被看到的地方，任何情況下都不得放進卡片。
+ *
+ * 這張卡片不能有任何按鈕。它是透過 liff.sendMessages() 以使用者的名義發出的，
+ * 而那條路徑不接受含 action 的 Flex 訊息——整則會被以 400 INVALID_MESSAGE 拒收，
+ * 連帶讓使用者以為儲存失敗。實測確認：同一張卡片拿掉 footer 按鈕就能送出。
+ * （LINE 的 validate/push 端點驗的是機器人發送那條路，會放行，不能用來驗這張卡。）
  */
 export function buildDailyFlexMessage(record: DailyRecord) {
   const name = record.displayName ?? '某位夥伴'
@@ -125,34 +130,6 @@ export function buildDailyFlexMessage(record: DailyRecord) {
         paddingAll: '18px',
         spacing: 'none',
         contents: body,
-      },
-      // 「拍拍」把單向的廣播變成雙向。互相監督的關鍵其實不是看到數字，
-      // 是知道有人看到了你。
-      //
-      // 用 message 而非 postback：這張卡片是透過 liff.sendMessages() 以
-      // 「使用者的名義」發出的，而 postback 是專屬機器人訊息的機制，
-      // 使用者發出的訊息帶 postback 會被 LINE 以 INVALID_MESSAGE 整個拒收。
-      // 改用 message 之後，點下去就是由按的人說出「拍拍 XXX」——
-      // 訊息本身就是那個拍拍，連 bot 都不需要介入。
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: C.cream,
-        paddingAll: '18px',
-        paddingTop: 'none',
-        contents: [
-          {
-            type: 'button',
-            style: 'secondary',
-            color: '#FCDC94',
-            height: 'sm',
-            action: {
-              type: 'message',
-              label: '拍拍',
-              text: `拍拍 ${name} 👏`,
-            },
-          },
-        ],
       },
     },
   }
