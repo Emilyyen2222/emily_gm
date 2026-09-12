@@ -116,29 +116,48 @@ function shortDate(date: string) {
         <template v-if="tab === 'trend'">
           <section class="rounded-2xl border border-brand-border bg-white p-4">
             <h2 class="mb-4 text-h3 font-bold text-brand-brown">睡眠品質</h2>
-            <div class="flex h-32 items-end gap-1">
-              <div v-for="r in chronological" :key="r.recordDate" class="flex flex-1 flex-col items-center gap-1">
-                <div
-                  class="w-full rounded-t bg-brand-orange"
-                  :style="{ height: `${r.sleepScore ?? 0}%` }"
-                  :title="`${r.recordDate}：${r.sleepScore ?? '-'}%`"
-                />
-                <span class="text-caption text-brand-brown-light/70">{{ shortDate(r.recordDate) }}</span>
+            <!-- 長條與日期分成兩層：百分比高度需要父層有明確高度，
+                 把標籤放進同一個 flex 欄會讓父層變成 auto，長條就撐不出來 -->
+            <div class="flex h-32 items-end gap-1.5">
+              <div
+                v-for="r in chronological"
+                :key="r.recordDate"
+                class="flex h-full flex-1 items-end overflow-hidden rounded-md bg-brand-panel/40"
+                :title="`${r.recordDate}：${r.sleepScore ?? '未填'}%`"
+              >
+                <div class="w-full rounded-md bg-brand-orange transition-all" :style="{ height: `${r.sleepScore ?? 0}%` }" />
               </div>
+            </div>
+            <div class="mt-1.5 flex gap-1.5">
+              <span
+                v-for="r in chronological"
+                :key="r.recordDate"
+                class="flex-1 text-center text-caption text-brand-brown-light/70"
+              >{{ shortDate(r.recordDate) }}</span>
             </div>
           </section>
 
           <section class="rounded-2xl border border-brand-border bg-white p-4">
             <h2 class="mb-4 text-h3 font-bold text-brand-brown">自我照顧</h2>
-            <div class="flex h-32 items-end gap-1">
-              <div v-for="r in chronological" :key="r.recordDate" class="flex flex-1 flex-col items-center gap-1">
+            <div class="flex h-32 items-end gap-1.5">
+              <div
+                v-for="r in chronological"
+                :key="r.recordDate"
+                class="flex h-full flex-1 items-end overflow-hidden rounded-md bg-brand-panel/40"
+                :title="`${r.recordDate}：${r.liverScore} / ${LIVER_CARE_TOTAL}`"
+              >
                 <div
-                  class="w-full rounded-t bg-brand-gold"
+                  class="w-full rounded-md bg-brand-orange/70 transition-all"
                   :style="{ height: `${(r.liverScore / LIVER_CARE_TOTAL) * 100}%` }"
-                  :title="`${r.recordDate}：${r.liverScore} / ${LIVER_CARE_TOTAL}`"
                 />
-                <span class="text-caption text-brand-brown-light/70">{{ shortDate(r.recordDate) }}</span>
               </div>
+            </div>
+            <div class="mt-1.5 flex gap-1.5">
+              <span
+                v-for="r in chronological"
+                :key="r.recordDate"
+                class="flex-1 text-center text-caption text-brand-brown-light/70"
+              >{{ shortDate(r.recordDate) }}</span>
             </div>
           </section>
         </template>
