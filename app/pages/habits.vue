@@ -85,7 +85,7 @@ async function save() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-cream pb-28">
+  <div class="min-h-screen bg-brand-cream pb-36">
     <div class="mx-auto max-w-lg px-4 pt-6">
       <header class="mb-5">
         <h1 class="text-h1 font-bold text-brand-brown">我的自我照顧項目</h1>
@@ -138,7 +138,7 @@ async function save() {
               type="text"
               :maxlength="HABIT_LABEL_MAX"
               placeholder="例如：練琴、不熬夜"
-              class="h-12 flex-1 rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown placeholder:text-brand-brown-light/60 focus:border-brand-orange focus:outline-none"
+              class="h-12 min-w-0 flex-1 rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown placeholder:text-brand-brown-light/60 focus:border-brand-orange focus:outline-none"
               @keyup.enter="addCustom"
             >
             <button
