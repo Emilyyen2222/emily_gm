@@ -1,4 +1,4 @@
-import { MOOD_SCORE, type DailyRecord } from '../types/record'
+import { ALLERGY_NONE, MOOD_SCORE, type DailyRecord } from '../types/record'
 
 /**
  * 關聯洞察：把紀錄依某個條件分成兩群，比較兩群的平均值。
@@ -101,7 +101,7 @@ export function buildInsights(records: DailyRecord[]): Insight[] {
   }
 
   // 過敏與心情
-  const allergyMood = compare(records, 'mood', (r) => r.allergy.length > 0 && !r.allergy.includes('無'), {
+  const allergyMood = compare(records, 'mood', (r) => r.allergy.length > 0 && !r.allergy.includes(ALLERGY_NONE), {
     title: '有過敏症狀的日子，心情',
     with: '有過敏',
     without: '沒過敏',

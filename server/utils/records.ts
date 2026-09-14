@@ -1,4 +1,5 @@
 import {
+  ALLERGY_NONE,
   ALLERGY_OPTIONS,
   DEFAULT_HABITS,
   MOOD_OPTIONS,
@@ -76,8 +77,8 @@ export function sanitizeRecordInput(input: Partial<RecordInput>, habits: string[
     bowelTime: input.bowelMovement === true && isTimeString(input.bowelTime) ? input.bowelTime : null,
     leaveHomeTime: isTimeString(input.leaveHomeTime) ? input.leaveHomeTime : null,
     leaveOfficeTime: isTimeString(input.leaveOfficeTime) ? input.leaveOfficeTime : null,
-    // 選了「無」就不該同時有其他症狀
-    allergy: allergy.includes('無') ? ['無'] : allergy,
+    // 選了「今天沒有」就不該同時有其他症狀
+    allergy: allergy.includes(ALLERGY_NONE) ? [ALLERGY_NONE] : allergy,
     mood: typeof input.mood === 'string' && (MOOD_OPTIONS as readonly string[]).includes(input.mood) ? input.mood : null,
     moodNote: cleanNote(input.moodNote),
     privateNote: cleanNote(input.privateNote),

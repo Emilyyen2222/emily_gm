@@ -3,7 +3,10 @@
  * 改動選項時只需改這裡，前端 UI 與後端白名單驗證會一起跟上。
  */
 
-export const ALLERGY_OPTIONS = ['無', '鼻塞', '眼睛癢', '皮膚癢'] as const
+export const ALLERGY_OPTIONS = ['今天沒有', '鼻子過敏', '眼睛過敏', '皮膚過敏'] as const
+
+/** 選了這一項就代表沒有其他症狀，兩者互斥 */
+export const ALLERGY_NONE = '今天沒有'
 export type AllergyOption = (typeof ALLERGY_OPTIONS)[number]
 
 /**

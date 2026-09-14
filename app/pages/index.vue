@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  ALLERGY_NONE,
   ALLERGY_OPTIONS,
   MOOD_OPTIONS,
   computeSleepHours,
@@ -234,7 +235,7 @@ async function submit(share: boolean) {
         </FormSection>
 
         <FormSection title="今天有過敏嗎">
-          <ChipMultiSelect v-model="form.allergy" :options="ALLERGY_OPTIONS" exclusive="無" />
+          <ChipMultiSelect v-model="form.allergy" :options="ALLERGY_OPTIONS" :exclusive="ALLERGY_NONE" />
         </FormSection>
 
         <FormSection title="起床心情">
