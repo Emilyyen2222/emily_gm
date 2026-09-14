@@ -270,7 +270,8 @@ async function submit() {
           <span class="flex-1 text-body">
             <span class="font-bold text-brand-brown">{{ isOneToOne ? '在這裡留一張卡片' : '分享到這個群組' }}</span>
             <span class="mt-0.5 block text-caption text-brand-brown-light">
-              除了最下面「只給自己的」那一格，其他都會出現在卡片上。
+              卡片上會有睡眠、心情、自我照顧，以及「夢」和「心情」的備註。
+              排便、過敏與「只給自己的」不會出現。
             </span>
           </span>
         </label>

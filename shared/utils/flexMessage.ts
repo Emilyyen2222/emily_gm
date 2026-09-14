@@ -29,11 +29,11 @@ export function buildDailyFlexMessage(record: DailyRecord) {
   const name = record.displayName ?? '某位夥伴'
   const percent = careRate(record)
 
+  // 只放夢與心情。排便與過敏從一開始就是隱私分類 —— 卡片上不顯示那兩個
+  // 結構化欄位，卻放它們的備註，等於讓備註孤零零出現又繞過了原本的界線。
   const notes = [
     { label: '夢', value: record.sleepNote },
     { label: '心情', value: record.moodNote },
-    { label: '排便', value: record.bowelNote },
-    { label: '過敏', value: record.allergyNote },
   ].filter((n): n is { label: string; value: string } => Boolean(n.value))
 
   const body: unknown[] = [

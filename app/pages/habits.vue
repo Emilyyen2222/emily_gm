@@ -131,7 +131,7 @@ async function save() {
         </div>
 
         <div class="mt-5 border-t border-brand-border pt-4">
-          <p class="mb-2 text-body font-bold text-brand-brown">自己加一項</p>
+          <p class="mb-2 text-body font-bold text-brand-brown">自己加項目</p>
           <div class="flex gap-2">
             <input
               v-model="draft"

@@ -9,7 +9,7 @@ const records = ref<DailyRecord[]>([])
 const today = ref<string | null>(null)
 const loading = ref(true)
 const loadError = ref<string | null>(null)
-const tab = ref<'trend' | 'insight' | 'notes'>('trend')
+const tab = ref<'trend' | 'insight' | 'daily'>('trend')
 
 onMounted(async () => {
   await init()
@@ -56,10 +56,46 @@ const avgMood = computed(() => {
 const insights = computed(() => buildInsights(records.value))
 const needMore = computed(() => Math.max(0, INSIGHT_MIN_RECORDS - records.value.length))
 
-/** 有寫任何備註的日子，當成日記回顧 */
-const noteDays = computed(() =>
-  records.value.filter((r) => r.sleepNote || r.moodNote || r.bowelNote || r.allergyNote || r.privateNote),
-)
+/**
+ * 每日紀錄。過去只列出「有寫備註的日子」，導致排便、過敏、上下班時間、
+ * 睡眠時間、以及自我照顧做了哪幾項全部只進不出 —— 填完當天之後就再也
+ * 看不到。這裡改成列出所有日子的完整內容。
+ */
+function timeRange(from: string | null, to: string | null, hours: number | null) {
+  if (!from || !to) return null
+  return `${from} → ${to}` + (hours ? `（${hours} 小時）` : '')
+}
+
+function dailyLines(r: DailyRecord) {
+  const lines: { label: string; value: string }[] = []
+  const sleep = [
+    r.sleepScore === null ? null : `${r.sleepScore}%`,
+    timeRange(r.bedTime, r.wakeTime, r.sleepHours),
+  ].filter(Boolean).join('・')
+  if (sleep) lines.push({ label: '睡眠', value: sleep })
+
+  if (r.bowelMovement !== null) {
+    lines.push({ label: '排便', value: r.bowelMovement ? ['有', r.bowelTime].filter(Boolean).join('・') : '沒有' })
+  }
+  if (r.allergy.length) lines.push({ label: '過敏', value: r.allergy.join('、') })
+
+  const work = timeRange(r.leaveHomeTime, r.leaveOfficeTime, null)
+  if (work) lines.push({ label: '上班', value: work })
+  else if (r.leaveHomeTime) lines.push({ label: '出門', value: r.leaveHomeTime })
+
+  if (r.liverCare.length) lines.push({ label: '自我照顧', value: r.liverCare.join('、') })
+  return lines
+}
+
+function dailyNotes(r: DailyRecord) {
+  return [
+    { label: '夢', value: r.sleepNote },
+    { label: '心情', value: r.moodNote },
+    { label: '排便', value: r.bowelNote },
+    { label: '過敏', value: r.allergyNote },
+    { label: '只給自己的', value: r.privateNote },
+  ].filter((n): n is { label: string; value: string } => Boolean(n.value))
+}
 
 /**
  * 分享上週回顧到群組。
@@ -256,7 +292,7 @@ function shortDate(date: string) {
         <!-- 分頁切換 -->
         <div class="flex gap-1 rounded-2xl border border-brand-border bg-white p-1">
           <button
-            v-for="t in [{ k: 'trend', label: '趨勢' }, { k: 'insight', label: '洞察' }, { k: 'notes', label: '備註' }]"
+            v-for="t in [{ k: 'trend', label: '趨勢' }, { k: 'insight', label: '洞察' }, { k: 'daily', label: '每日' }]"
             :key="t.k"
             type="button"
             class="flex-1 rounded-xl py-2.5 text-body font-medium transition"
@@ -336,33 +372,34 @@ function shortDate(date: string) {
           </p>
         </template>
 
-        <!-- 備註 -->
+        <!-- 每日 -->
         <template v-else>
-          <div v-if="!noteDays.length" class="rounded-2xl border border-brand-border bg-white p-6 text-center text-body text-brand-brown-light">
-            還沒有寫過任何備註
+          <div v-if="!records.length" class="rounded-2xl border border-brand-border bg-white p-6 text-center text-body text-brand-brown-light">
+            還沒有任何紀錄
           </div>
           <section
-            v-for="r in noteDays"
+            v-for="r in records"
             :key="r.recordDate"
             class="rounded-2xl border border-brand-border bg-white p-4"
           >
             <div class="flex items-baseline gap-2">
-              <h3 class="text-body font-bold text-brand-brown">{{ r.recordDate }}</h3>
+              <h3 class="text-body font-bold text-brand-brown">{{ r.recordDate.slice(5).replace('-', '/') }}</h3>
               <span v-if="r.mood" class="text-body-lg">{{ r.mood }}</span>
-              <span v-if="r.sleepScore !== null" class="text-caption text-brand-brown-light">睡眠 {{ r.sleepScore }}%</span>
             </div>
-            <dl class="mt-3 space-y-2">
-              <div v-for="note in [
-                { label: '夢', value: r.sleepNote },
-                { label: '心情', value: r.moodNote },
-                { label: '排便', value: r.bowelNote },
-                { label: '過敏', value: r.allergyNote },
-                { label: '只給自己的', value: r.privateNote },
-              ].filter((n) => n.value)" :key="note.label">
-                <dt class="text-caption text-brand-brown-light">{{ note.label }}</dt>
-                <dd class="text-body text-brand-brown">{{ note.value }}</dd>
+
+            <dl class="mt-3 space-y-1.5">
+              <div v-for="line in dailyLines(r)" :key="line.label" class="flex gap-3 text-body">
+                <dt class="w-20 shrink-0 text-brand-brown-light">{{ line.label }}</dt>
+                <dd class="flex-1 text-brand-brown">{{ line.value }}</dd>
               </div>
             </dl>
+
+            <div v-if="dailyNotes(r).length" class="mt-3 space-y-2 border-t border-brand-border pt-3">
+              <div v-for="note in dailyNotes(r)" :key="note.label">
+                <dt class="text-caption text-brand-orange">{{ note.label }}</dt>
+                <dd class="text-body text-brand-brown">{{ note.value }}</dd>
+              </div>
+            </div>
           </section>
         </template>
       </div>
