@@ -31,9 +31,13 @@ const savedAt = ref<string | null>(null)
 
 /** 這個人自己選的自我照顧項目。還沒設定過的人會先被帶去設定頁 */
 const habits = ref<string[]>([])
-const liverPercent = computed(() =>
-  habits.value.length ? Math.round((form.value.liverCare.length / habits.value.length) * 100) : 0,
-)
+const liverPercent = computed(() => {
+  if (!habits.value.length) return 0
+  // 只算目前清單裡的項目。防呆用的第二道保險——真正的修正在載入時就過濾掉
+  // 舊項目，但這裡夾住上限，任何殘留都不會再變成 133% 那種數字
+  const done = form.value.liverCare.filter((h) => habits.value.includes(h)).length
+  return Math.min(100, Math.round((done / habits.value.length) * 100))
+})
 const progress = computed(() => countFilled(form.value))
 
 /** 睡眠時數由入睡與起床時間即時算出，讓使用者填完馬上看到 */
@@ -85,7 +89,10 @@ onMounted(async () => {
       const { shared, sourceChatId, ...rest } = today
       Object.assign(form.value, rest)
       form.value.allergy = [...today.allergy]
-      form.value.liverCare = [...today.liverCare]
+      // 過濾掉已經不在清單裡的項目。使用者換過項目之後，舊紀錄裡的項目
+      // 在畫面上不會顯示、也就無法取消，卻還被算進達成數 ——
+      // 那正是「兩項變三項卻顯示 133%」的來源。
+      form.value.liverCare = today.liverCare.filter((h) => habits.value.includes(h))
     }
   } catch {
     // 讀不到舊資料時要明講。靜默失敗的話，使用者以為自己在補填，
