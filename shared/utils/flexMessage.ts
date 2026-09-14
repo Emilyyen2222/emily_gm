@@ -29,12 +29,30 @@ export function buildDailyFlexMessage(record: DailyRecord) {
   const name = record.displayName ?? '某位夥伴'
   const percent = careRate(record)
 
-  // 只放夢與心情。排便與過敏從一開始就是隱私分類 —— 卡片上不顯示那兩個
-  // 結構化欄位，卻放它們的備註，等於讓備註孤零零出現又繞過了原本的界線。
   const notes = [
     { label: '夢', value: record.sleepNote },
     { label: '心情', value: record.moodNote },
   ].filter((n): n is { label: string; value: string } => Boolean(n.value))
+
+  // 欄位順序刻意與表單一致：使用者剛填完就看到卡片，兩邊順序不同會讓人
+  // 一時對不上自己填了什麼。
+  const rows: unknown[] = []
+  if (record.sleepScore !== null) rows.push(row('睡眠', `${record.sleepScore}%`))
+  if (record.bedTime && record.wakeTime) {
+    rows.push(subRow(`${record.bedTime} → ${record.wakeTime}${record.sleepHours ? `・${record.sleepHours} 小時` : ''}`))
+  }
+  if (record.bowelMovement !== null) {
+    // 💩 一看就懂；沒有的時候用 😣（用力、卡住）而不是文字，兩個狀態都是
+    // 符號才對稱。前面有「排便」這個標籤，語境不會被誤讀。
+    rows.push(row('排便', record.bowelMovement ? ['💩', record.bowelTime].filter(Boolean).join(' ') : '😣'))
+  }
+  if (record.leaveHomeTime && record.leaveOfficeTime) {
+    rows.push(row('上班', `${record.leaveHomeTime} → ${record.leaveOfficeTime}`))
+  }
+  if (record.allergy.length) rows.push(row('過敏', record.allergy.join('、')))
+  if (record.mood) rows.push(row('心情', record.mood))
+  rows.push(row('自我照顧', `${record.liverScore} / ${record.liverTotal}`))
+  if (record.liverCare.length) rows.push(subRow(record.liverCare.join('、')))
 
   const body: unknown[] = [
     {
@@ -48,34 +66,8 @@ export function buildDailyFlexMessage(record: DailyRecord) {
     },
     { type: 'text', text: name, size: 'xl', weight: 'bold', color: C.brown, wrap: true, margin: 'md' },
     { type: 'separator', margin: 'lg', color: C.border },
-    {
-      type: 'box',
-      layout: 'vertical',
-      margin: 'lg',
-      spacing: 'md',
-      contents: [
-        row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore}%`),
-        row('心情', record.mood ?? '－'),
-        row('自我照顧', `${record.liverScore} / ${record.liverTotal}`),
-        // 每個人選的項目不同，只看「2 / 3」不知道是哪兩項，
-        // 而別人做了什麼本來就是群組裡最有意思的資訊
-        ...(record.liverCare.length
-          ? [{ type: 'text', text: record.liverCare.join('、'), size: 'xs', color: C.brownLight, wrap: true, align: 'end' }]
-          : []),
-      ],
-    },
+    { type: 'box', layout: 'vertical', margin: 'lg', spacing: 'md', contents: rows },
   ]
-
-  // 幾點睡到幾點醒。只有兩個時間都填了才顯示，否則資訊不完整反而令人困惑
-  if (record.bedTime && record.wakeTime) {
-    body.push({
-      type: 'text',
-      text: `${record.bedTime} → ${record.wakeTime}${record.sleepHours ? `・${record.sleepHours} 小時` : ''}`,
-      size: 'sm',
-      color: C.brownLight,
-      margin: 'md',
-    })
-  }
 
   if (notes.length) {
     body.push({ type: 'separator', margin: 'lg', color: C.border })
@@ -141,6 +133,11 @@ export function buildDailyFlexMessage(record: DailyRecord) {
 
 function truncate(text: string): string {
   return text.length > NOTE_PREVIEW_LENGTH ? `${text.slice(0, NOTE_PREVIEW_LENGTH)}…` : text
+}
+
+/** 附屬在上一列底下的說明文字，例如睡眠時間、自我照顧的項目清單 */
+function subRow(text: string) {
+  return { type: 'text', text, size: 'xs', color: C.brownLight, wrap: true, align: 'end' }
 }
 
 function row(label: string, value: string) {

@@ -20,11 +20,12 @@ export function rowToRecord(row: Record<string, any>): DailyRecord {
     sleepNote: row.sleep_note ?? null,
     bowelMovement: row.bowel_movement ?? null,
     bowelTime: row.bowel_time ? String(row.bowel_time).slice(0, 5) : null,
+    // 已停用的欄位，只讀不寫，讓舊紀錄在「每日」分頁仍看得到
     bowelNote: row.bowel_note ?? null,
+    allergyNote: row.allergy_note ?? null,
     leaveHomeTime: row.leave_home_time ? String(row.leave_home_time).slice(0, 5) : null,
     leaveOfficeTime: row.leave_office_time ? String(row.leave_office_time).slice(0, 5) : null,
     allergy: row.allergy ?? [],
-    allergyNote: row.allergy_note ?? null,
     mood: row.mood ?? null,
     moodNote: row.mood_note ?? null,
     privateNote: row.private_note ?? null,
@@ -73,12 +74,10 @@ export function sanitizeRecordInput(input: Partial<RecordInput>, habits: string[
     bowelMovement: typeof input.bowelMovement === 'boolean' ? input.bowelMovement : null,
     // 沒排便就不該有排便時間
     bowelTime: input.bowelMovement === true && isTimeString(input.bowelTime) ? input.bowelTime : null,
-    bowelNote: cleanNote(input.bowelNote),
     leaveHomeTime: isTimeString(input.leaveHomeTime) ? input.leaveHomeTime : null,
     leaveOfficeTime: isTimeString(input.leaveOfficeTime) ? input.leaveOfficeTime : null,
     // 選了「無」就不該同時有其他症狀
     allergy: allergy.includes('無') ? ['無'] : allergy,
-    allergyNote: cleanNote(input.allergyNote),
     mood: typeof input.mood === 'string' && (MOOD_OPTIONS as readonly string[]).includes(input.mood) ? input.mood : null,
     moodNote: cleanNote(input.moodNote),
     privateNote: cleanNote(input.privateNote),

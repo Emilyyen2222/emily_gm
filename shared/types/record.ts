@@ -70,11 +70,9 @@ export interface RecordInput {
   sleepNote: string | null
   bowelMovement: boolean | null
   bowelTime: string | null
-  bowelNote: string | null
   leaveHomeTime: string | null
   leaveOfficeTime: string | null
   allergy: string[]
-  allergyNote: string | null
   mood: string | null
   moodNote: string | null
   /** 只給自己的。永遠不會出現在分享卡片上 */
@@ -93,6 +91,12 @@ export interface SubmitRecordPayload extends RecordInput {
 
 /** 後端回傳的一筆紀錄 */
 export interface DailyRecord extends RecordInput {
+  /**
+   * 已停用的備註欄位。表單不再收集（排便備註從未有人使用，過敏備註兩筆），
+   * 但舊紀錄仍要能在「每日」分頁看到，資料不該因為欄位下架就憑空消失。
+   */
+  bowelNote?: string | null
+  allergyNote?: string | null
   recordDate: string
   displayName: string | null
   /** 自我照顧達成數，由後端計算 */
@@ -121,11 +125,9 @@ export function emptyRecordInput(): RecordInput {
     sleepNote: null,
     bowelMovement: null,
     bowelTime: null,
-    bowelNote: null,
     leaveHomeTime: null,
     leaveOfficeTime: null,
     allergy: [],
-    allergyNote: null,
     mood: null,
     moodNote: null,
     privateNote: null,

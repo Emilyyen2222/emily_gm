@@ -21,7 +21,7 @@ const noShareReason = computed(() => {
 
 const form = ref(emptyRecordInput())
 const loading = ref(true)
-const pending = ref(false)
+const pending = ref<'save' | 'share' | null>(null)
 const submitError = ref<string | null>(null)
 const justShared = ref(false)
 const prefillFailed = ref(false)
@@ -61,7 +61,6 @@ onMounted(async () => {
     return
   }
 
-  form.value.shared = canShareToChat.value
   form.value.sourceChatId = chatId.value
 
   try {
@@ -102,19 +101,19 @@ onMounted(async () => {
   }
 })
 
-async function submit() {
+async function submit(share: boolean) {
   if (pending.value) return
-  pending.value = true
+  pending.value = share ? 'share' : 'save'
   submitError.value = null
 
   try {
     const idToken = await getIdToken()
     const { record } = await $fetch<SubmitRecordResponse>('/api/records', {
       method: 'POST',
-      body: { ...form.value, idToken },
+      body: { ...form.value, shared: share, idToken },
     })
 
-    if (form.value.shared && canShareToChat.value) {
+    if (share && canShareToChat.value) {
       try {
         await sendToChat(buildDailyFlexMessage({ ...record, displayName: record.displayName ?? displayName.value }))
         // 先顯示成功狀態再關閉。原本是送出後立刻關窗，畫面一閃就結束，
@@ -138,7 +137,7 @@ async function submit() {
   } catch (err: any) {
     submitError.value = err?.data?.statusMessage ?? err?.message ?? '送出失敗，請稍後再試'
   } finally {
-    pending.value = false
+    pending.value = null
   }
 }
 </script>
@@ -167,7 +166,7 @@ async function submit() {
         <div v-for="i in 4" :key="i" class="h-28 animate-pulse rounded-2xl bg-brand-panel/60" />
       </div>
 
-      <form v-else class="space-y-4" @submit.prevent="submit">
+      <form v-else class="space-y-4" @submit.prevent="submit(false)">
         <p
           v-if="prefillFailed"
           class="rounded-2xl border-2 border-brand-gold bg-brand-hover p-3 text-body text-brand-brown"
@@ -225,9 +224,6 @@ async function submit() {
             <TimeField v-model="form.bowelTime" label="時間" />
           </div>
 
-          <div class="mt-3">
-            <NoteField v-model="form.bowelNote" placeholder="狀態如何？（選填）" />
-          </div>
         </FormSection>
 
         <FormSection title="上班時間" :hint="workHours ? `在外 ${workHours}` : undefined">
@@ -239,9 +235,6 @@ async function submit() {
 
         <FormSection title="今天有過敏嗎">
           <ChipMultiSelect v-model="form.allergy" :options="ALLERGY_OPTIONS" exclusive="無" />
-          <div class="mt-3">
-            <NoteField v-model="form.allergyNote" placeholder="什麼情況下出現的？（選填）" />
-          </div>
         </FormSection>
 
         <FormSection title="起床心情">
@@ -262,20 +255,6 @@ async function submit() {
           <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
         </FormSection>
 
-        <label
-          v-if="canShareToChat"
-          class="flex items-center gap-3 rounded-2xl border border-brand-border bg-white p-4"
-        >
-          <input v-model="form.shared" type="checkbox" class="h-5 w-5 accent-brand-orange">
-          <span class="flex-1 text-body">
-            <span class="font-bold text-brand-brown">{{ isOneToOne ? '在這裡留一張卡片' : '分享到這個群組' }}</span>
-            <span class="mt-0.5 block text-caption text-brand-brown-light">
-              卡片上會有睡眠、心情、自我照顧，以及「夢」和「心情」的備註。
-              排便、過敏與「只給自己的」不會出現。
-            </span>
-          </span>
-        </label>
-
         <p v-if="noShareReason" class="rounded-2xl border border-brand-border bg-white p-4 text-caption text-brand-brown-light">
           {{ noShareReason }}
         </p>
@@ -288,20 +267,41 @@ async function submit() {
     </div>
 
     <div v-if="ready && !loading" class="fixed inset-x-0 bottom-0 border-t border-brand-border bg-brand-cream/95 p-4 backdrop-blur">
-      <p v-if="savedAt" class="mb-2 text-center text-caption text-brand-green">
-        已於 {{ savedAt }} 儲存，可以繼續補其他欄位
-      </p>
-      <button
-        type="button"
-        :disabled="pending || justShared"
-        class="mx-auto flex h-14 w-full max-w-lg items-center justify-center rounded-2xl bg-brand-orange text-body-lg font-bold text-white transition active:scale-[0.99] active:bg-brand-orange-dark disabled:opacity-50"
-        @click="submit"
-      >
-        {{ pending ? '儲存中…'
-          : justShared ? '完成'
-          : form.shared && canShareToChat ? (isOneToOne ? '儲存並留下卡片' : '儲存並分享到群組')
-          : isUpdate ? '更新紀錄' : '儲存' }}
-      </button>
+      <div class="mx-auto w-full max-w-lg">
+        <p v-if="savedAt" class="mb-2 text-center text-caption text-brand-green">
+          {{ savedAt }} 存好了，晚點還能回來補
+        </p>
+
+        <!-- 兩顆按鈕而不是「勾選框 + 一顆會變文字的按鈕」：勾選框唯一的作用
+             就是控制按鈕，兩顆各自寫清楚自己做什麼之後，那個隱藏狀態就是
+             多餘的，使用者也不必先理解勾選框才能理解按鈕。 -->
+        <div class="flex gap-2">
+          <button
+            type="button"
+            :disabled="pending !== null"
+            class="h-14 flex-1 rounded-2xl border-2 border-brand-border bg-white text-body font-bold text-brand-brown-light transition active:scale-[0.99] disabled:opacity-50"
+            @click="submit(false)"
+          >
+            {{ pending === 'save' ? '儲存中…' : '只儲存' }}
+          </button>
+          <button
+            v-if="canShareToChat"
+            type="button"
+            :disabled="pending !== null"
+            class="h-14 flex-[2] rounded-2xl bg-brand-orange text-body font-bold text-white transition active:scale-[0.99] active:bg-brand-orange-dark disabled:opacity-50"
+            @click="submit(true)"
+          >
+            {{ pending === 'share' ? '分享中…' : isOneToOne ? '儲存並留下卡片' : '儲存並分享到群組' }}
+          </button>
+        </div>
+
+        <p v-if="canShareToChat" class="mt-2 text-center text-caption text-brand-brown-light">
+          除了「只給自己的」，其他都會出現在卡片上
+        </p>
+        <p v-else-if="noShareReason" class="mt-2 text-center text-caption text-brand-brown-light">
+          {{ noShareReason }}
+        </p>
+      </div>
     </div>
   </div>
 </template>
