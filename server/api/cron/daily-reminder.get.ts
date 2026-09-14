@@ -16,10 +16,11 @@ export default defineEventHandler(async (event) => {
       }),
     ]
 
-    // 週報只發給群組。一對一聊天室裡談「大家」沒有意義 ——
-    // 那個人不一定跟其他記錄者有任何關係。
-    if (taipeiWeekday() === 1 && chat.chatType !== 'user') {
-      const weekly = await buildWeeklyReport(taipeiToday())
+    // 週報只發到本人的一對一聊天室，而且只含他自己的資料。
+    // 群組不再收到任何週報 —— 在能百分之百確定「誰屬於這個群組」之前，
+    // 任何跨使用者的彙整都有把別人資料送錯地方的風險。
+    if (taipeiWeekday() === 1 && chat.chatType === 'user') {
+      const weekly = await buildPersonalWeeklyReport(chat.chatId, taipeiToday())
       if (weekly) messages.push(weekly)
     }
 

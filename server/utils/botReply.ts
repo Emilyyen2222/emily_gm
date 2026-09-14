@@ -77,7 +77,7 @@ function row(label: string, value: string) {
 export function helpCard(url: string, inGroup = false) {
   return {
     type: 'flex',
-    altText: '可以跟我說：記錄 / 今天 / 本週 / 排行',
+    altText: '可以跟我說：記錄 / 今天 / 本週',
     contents: bubble(
       '可以這樣用',
       [
@@ -90,7 +90,6 @@ export function helpCard(url: string, inGroup = false) {
             row('記錄', '開始今天的記錄'),
             row('今天', '看今天填了什麼'),
             row('本週', '看這週的摘要'),
-            row('排行', '看群組排行'),
           ],
         },
         {
