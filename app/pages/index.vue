@@ -20,7 +20,12 @@ const noShareReason = computed(() => {
   return '這次不是從聊天室開啟的，只會儲存資料。想分享的話，從群組或聊天室裡的連結進來。'
 })
 
-const form = ref(emptyRecordInput())
+// useState 而非 ref：使用者點「查看我的紀錄」再返回時，元件會重新掛載。
+// 用 ref 的話未儲存的修改會被重新讀取的伺服器資料蓋掉——而那個連結就在
+// 表單裡面，等於隨手一點就把剛填的東西弄丟。
+const form = useState('record-form', () => emptyRecordInput())
+/** 已經從伺服器載入過哪一天的資料。同一天再回到這頁就不重新覆蓋 */
+const loadedDate = useState<string | null>('record-loaded-date', () => null)
 const loading = ref(true)
 const pending = ref<'save' | 'share' | null>(null)
 const submitError = ref<string | null>(null)
@@ -30,7 +35,7 @@ const isUpdate = ref(false)
 const savedAt = ref<string | null>(null)
 
 /** 這個人自己選的自我照顧項目。還沒設定過的人會先被帶去設定頁 */
-const habits = ref<string[]>([])
+const habits = useState<string[]>('record-habits', () => [])
 const liverPercent = computed(() => {
   if (!habits.value.length) return 0
   // 只算目前清單裡的項目。防呆用的第二道保險——真正的修正在載入時就過濾掉
@@ -82,6 +87,13 @@ onMounted(async () => {
       query: { days: 1 },
       headers: { 'x-liff-id-token': idToken },
     })
+    // 同一天已經載入過就保留畫面上的內容，不要用伺服器資料蓋掉未儲存的修改
+    if (loadedDate.value === data.today) {
+      loading.value = false
+      return
+    }
+    loadedDate.value = data.today
+
     const today = data.records.find((r) => r.recordDate === data.today)
     if (today) {
       isUpdate.value = true
@@ -300,7 +312,13 @@ async function submit(share: boolean) {
           </button>
         </div>
 
-        <p v-if="canShareToChat" class="mt-2 text-center text-caption text-brand-brown-light">
+        <!-- 錯誤放在固定列裡：先前顯示在表單末尾，長表單下會被推到畫面外，
+             分享失敗時看起來就像「按了沒反應」 -->
+        <p v-if="submitError" class="mt-2 rounded-xl border-2 border-red-200 bg-red-50 p-3 text-body text-red-700">
+          {{ submitError }}
+        </p>
+
+        <p v-else-if="canShareToChat" class="mt-2 text-center text-caption text-brand-brown-light">
           除了「只給自己的」，其他都會出現在卡片上
         </p>
         <p v-else-if="noShareReason" class="mt-2 text-center text-caption text-brand-brown-light">
