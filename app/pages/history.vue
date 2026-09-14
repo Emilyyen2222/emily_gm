@@ -3,7 +3,7 @@ import { MOOD_SCORE, careRate, type DailyRecord, type RecordsResponse } from '#s
 import { INSIGHT_MIN_RECORDS, buildInsights } from '#shared/utils/insights'
 import { buildWeeklyShareCard, lastWeekRange } from '#shared/utils/weeklyCard'
 
-const { ready, initError, displayName, canShareToChat, isOneToOne, canPickTarget, init, getIdToken, sendToChat, shareToPicked } = useLiff()
+const { ready, initError, displayName, canShareToChat, isOneToOne, canPickTarget, inClient, init, getIdToken, sendToChat, shareToPicked } = useLiff()
 
 const records = ref<DailyRecord[]>([])
 const today = ref<string | null>(null)
@@ -87,7 +87,9 @@ const shareError = ref<string | null>(null)
  * 一對一聊天室等於沒分享，所以那裡要走選擇器。
  */
 const canDirectShare = computed(() => canShareToChat.value && !isOneToOne.value)
-const canShareWeek = computed(() => canDirectShare.value || canPickTarget.value)
+// 暫時：即使 isApiAvailable 回 false 也讓按鈕出現，實際呼叫一次看 LINE
+// 回什麼錯誤碼。確認結果後要改回 canDirectShare || canPickTarget。
+const canShareWeek = computed(() => canDirectShare.value || inClient.value)
 
 const weekSummary = computed(() => {
   const rs = weekRecords.value

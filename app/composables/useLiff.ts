@@ -76,14 +76,23 @@ export function useLiff() {
     return token
   }
 
-  /** 讓使用者自己挑要分享到哪些聊天室。回傳 false 代表使用者取消 */
+  /**
+   * 讓使用者自己挑要分享到哪些聊天室。回傳 false 代表使用者取消。
+   *
+   * 刻意「不」先看 isApiAvailable 就擋下來：那個判斷可能偏保守，而實際
+   * 呼叫拋出的錯誤帶有錯誤碼，能對照 LIFF 文件查出真正的原因。先擋下來
+   * 只會得到我自己寫的那句話，等於把診斷資訊丟掉。
+   */
   async function shareToPicked(message: unknown): Promise<boolean> {
-    if (!liff.isApiAvailable('shareTargetPicker')) {
-      throw new Error('這個環境不支援選擇分享對象')
+    const available = liff.isApiAvailable('shareTargetPicker')
+    try {
+      const result = await liff.shareTargetPicker([message as never])
+      // 使用者按了取消時會回傳 null，那不是錯誤
+      return result !== null && result !== undefined
+    } catch (err: any) {
+      const code = err?.code ? `${err.code}` : '無錯誤碼'
+      throw new Error(`${code}：${err?.message ?? err}（isApiAvailable=${available}）`)
     }
-    const result = await liff.shareTargetPicker([message as never])
-    // 使用者按了取消時會回傳 null，那不是錯誤
-    return result !== null && result !== undefined
   }
 
   async function sendToChat(message: unknown) {
