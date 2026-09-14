@@ -217,7 +217,7 @@ async function submit(share: boolean) {
           </div>
         </FormSection>
 
-        <FormSection title="今天排便">
+        <FormSection title="💩了嗎">
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="opt in [{ label: '有', value: true }, { label: '沒有', value: false }]"

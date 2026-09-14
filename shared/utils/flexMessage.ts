@@ -42,9 +42,9 @@ export function buildDailyFlexMessage(record: DailyRecord) {
     rows.push(subRow(`${record.bedTime} → ${record.wakeTime}${record.sleepHours ? `・${record.sleepHours} 小時` : ''}`))
   }
   if (record.bowelMovement !== null) {
-    // 💩 一看就懂；沒有的時候用 😣（用力、卡住）而不是文字，兩個狀態都是
-    // 符號才對稱。前面有「排便」這個標籤，語境不會被誤讀。
-    rows.push(row('排便', record.bowelMovement ? ['💩', record.bowelTime].filter(Boolean).join(' ') : '😣'))
+    // 標籤直接用 💩，值才是內容 —— 標籤和值都放 emoji 會變成兩個符號並排，
+    // 反而看不懂哪個是哪個。「還沒」比「沒有」好，今天還沒過完。
+    rows.push(row('💩', record.bowelMovement ? (record.bowelTime ?? '有') : '還沒'))
   }
   if (record.leaveHomeTime && record.leaveOfficeTime) {
     rows.push(row('上班', `${record.leaveHomeTime} → ${record.leaveOfficeTime}`))

@@ -75,7 +75,7 @@ function dailyLines(r: DailyRecord) {
   if (sleep) lines.push({ label: '睡眠', value: sleep })
 
   if (r.bowelMovement !== null) {
-    lines.push({ label: '排便', value: r.bowelMovement ? ['有', r.bowelTime].filter(Boolean).join('・') : '沒有' })
+    lines.push({ label: '💩', value: r.bowelMovement ? (r.bowelTime ?? '有') : '還沒' })
   }
   if (r.allergy.length) lines.push({ label: '過敏', value: r.allergy.join('、') })
 
@@ -91,7 +91,7 @@ function dailyNotes(r: DailyRecord) {
   return [
     { label: '夢', value: r.sleepNote },
     { label: '心情', value: r.moodNote },
-    { label: '排便', value: r.bowelNote },
+    { label: '💩', value: r.bowelNote },
     { label: '過敏', value: r.allergyNote },
     { label: '只給自己的', value: r.privateNote },
   ].filter((n): n is { label: string; value: string } => Boolean(n.value))
