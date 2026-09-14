@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { MOOD_SCORE, careRate, type DailyRecord, type RecordsResponse } from '#shared/types/record'
 import { INSIGHT_MIN_RECORDS, buildInsights } from '#shared/utils/insights'
+import { buildWeeklyShareCard, lastWeekRange } from '#shared/utils/weeklyCard'
 
-const { ready, initError, init, getIdToken } = useLiff()
+const { ready, initError, displayName, canShareToChat, init, getIdToken, sendToChat } = useLiff()
 
 const records = ref<DailyRecord[]>([])
+const today = ref<string | null>(null)
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 const tab = ref<'trend' | 'insight' | 'notes'>('trend')
@@ -22,6 +24,7 @@ onMounted(async () => {
       headers: { 'x-liff-id-token': idToken },
     })
     records.value = data.records
+    today.value = data.today
   } catch (err: any) {
     loadError.value = err?.data?.statusMessage ?? '讀取失敗'
   } finally {
@@ -58,6 +61,46 @@ const noteDays = computed(() =>
   records.value.filter((r) => r.sleepNote || r.moodNote || r.bowelNote || r.allergyNote || r.privateNote),
 )
 
+/**
+ * 分享上週回顧到群組。
+ *
+ * 卡片只含本人的資料：records 來自 /api/records/me，那個端點以 ID Token
+ * 驗證身分、只回傳本人紀錄。發送對象由使用者決定——按鈕只在從群組開啟時
+ * 出現，卡片發到他開啟 LIFF 的那個聊天室，沒有任何自動推播。
+ */
+const weekRange = computed(() => (today.value ? lastWeekRange(today.value) : null))
+const weekRecords = computed(() => {
+  const range = weekRange.value
+  if (!range) return []
+  return records.value.filter((r) => r.recordDate >= range.from && r.recordDate <= range.to)
+})
+const sharing = ref(false)
+const shareState = ref<'idle' | 'done' | 'error'>('idle')
+const shareError = ref<string | null>(null)
+
+async function shareWeek() {
+  const range = weekRange.value
+  if (!range || sharing.value) return
+  sharing.value = true
+  shareError.value = null
+  try {
+    await sendToChat(
+      buildWeeklyShareCard({
+        displayName: displayName.value,
+        from: range.from,
+        to: range.to,
+        records: weekRecords.value,
+      }),
+    )
+    shareState.value = 'done'
+  } catch (err: any) {
+    shareState.value = 'error'
+    shareError.value = err?.message ?? '分享失敗，請再試一次'
+  } finally {
+    sharing.value = false
+  }
+}
+
 function shortDate(date: string) {
   return date.slice(5).replace('-', '/')
 }
@@ -84,6 +127,24 @@ function shortDate(date: string) {
       </div>
 
       <div v-else class="space-y-4">
+        <!-- 分享上週回顧：只有從群組開啟時才出現 -->
+        <section v-if="canShareToChat && weekRange" class="rounded-2xl border border-brand-border bg-white p-4">
+          <p class="text-body font-bold text-brand-brown">上週回顧</p>
+          <p class="mt-0.5 text-caption text-brand-brown-light">
+            {{ weekRange.from.slice(5).replace('-', '/') }} – {{ weekRange.to.slice(5).replace('-', '/') }}・記錄 {{ weekRecords.length }} 天
+          </p>
+          <button
+            type="button"
+            :disabled="sharing || !weekRecords.length"
+            class="mt-3 h-12 w-full rounded-xl bg-brand-orange text-body font-bold text-white transition active:bg-brand-orange-dark disabled:opacity-50"
+            @click="shareWeek"
+          >
+            {{ sharing ? '分享中…' : shareState === 'done' ? '已分享' : '分享到群組' }}
+          </button>
+          <p v-if="!weekRecords.length" class="mt-2 text-caption text-brand-brown-light">上週沒有紀錄</p>
+          <p v-if="shareError" class="mt-2 text-caption text-red-600">{{ shareError }}</p>
+        </section>
+
         <!-- 三個平均值 -->
         <div class="grid grid-cols-3 gap-2">
           <div class="rounded-2xl border border-brand-border bg-white p-3">
