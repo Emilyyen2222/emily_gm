@@ -167,7 +167,10 @@ async function save() {
       </NuxtLink>
     </div>
 
-    <div class="fixed inset-x-0 bottom-0 border-t border-brand-border bg-brand-cream/95 p-4 backdrop-blur">
+    <div
+      class="fixed inset-x-0 bottom-0 border-t border-brand-border bg-brand-cream/95 p-4 backdrop-blur"
+      style="padding-bottom: calc(1rem + env(safe-area-inset-bottom))"
+    >
       <p v-if="error" class="mb-2 rounded-xl border-2 border-red-200 bg-red-50 p-3 text-body text-red-700">{{ error }}</p>
       <button
         type="button"

@@ -143,7 +143,7 @@ async function submit(share: boolean) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-cream pb-28">
+  <div class="min-h-screen bg-brand-cream pb-48">
     <div class="mx-auto max-w-lg px-4 pt-6">
       <header class="mb-5">
         <div class="flex items-center gap-2">
@@ -266,7 +266,11 @@ async function submit(share: boolean) {
       </form>
     </div>
 
-    <div v-if="ready && !loading" class="fixed inset-x-0 bottom-0 border-t border-brand-border bg-brand-cream/95 p-4 backdrop-blur">
+    <div
+      v-if="ready && !loading"
+      class="fixed inset-x-0 bottom-0 border-t border-brand-border bg-brand-cream/95 p-4 backdrop-blur"
+      style="padding-bottom: calc(1rem + env(safe-area-inset-bottom))"
+    >
       <div class="mx-auto w-full max-w-lg">
         <p v-if="savedAt" class="mb-2 text-center text-caption text-brand-green">
           {{ savedAt }} 存好了，晚點還能回來補
