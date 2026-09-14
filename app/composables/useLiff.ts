@@ -14,6 +14,12 @@ export function useLiff() {
   const chatId = useState<string | null>('liff-chat-id', () => null)
   /** 是否在 LINE 內建瀏覽器中。桌機版與外部瀏覽器都發不了訊息 */
   const inClient = useState('liff-in-client', () => false)
+  /**
+   * 分享對象選擇器是否可用。由執行環境當下決定，不是可以事先啟用的設定：
+   * 需要 LIFF SDK 2.4.0+、LINE App 10.3.0+、chat_message.write 權限，
+   * 且不在外部瀏覽器。所以只能在 init 之後實際查詢。
+   */
+  const canPickTarget = useState('liff-can-pick', () => false)
 
   /**
    * 能不能把卡片發回開啟 LIFF 的那個聊天室。
@@ -50,6 +56,7 @@ export function useLiff() {
       }
 
       inClient.value = liff.isInClient()
+      canPickTarget.value = liff.isApiAvailable('shareTargetPicker')
       const context = liff.getContext()
       contextType.value = (context?.type as ChatContextType) ?? 'none'
       chatId.value = context?.groupId ?? context?.roomId ?? null
@@ -69,6 +76,16 @@ export function useLiff() {
     return token
   }
 
+  /** 讓使用者自己挑要分享到哪些聊天室。回傳 false 代表使用者取消 */
+  async function shareToPicked(message: unknown): Promise<boolean> {
+    if (!liff.isApiAvailable('shareTargetPicker')) {
+      throw new Error('這個環境不支援選擇分享對象')
+    }
+    const result = await liff.shareTargetPicker([message as never])
+    // 使用者按了取消時會回傳 null，那不是錯誤
+    return result !== null && result !== undefined
+  }
+
   async function sendToChat(message: unknown) {
     // 原本這裡靜默 return，讓「沒發出去」看起來跟「發出去了」一模一樣。
     // 改成拋錯，呼叫端才有辦法分辨。
@@ -83,7 +100,7 @@ export function useLiff() {
 
   return {
     ready, initError, displayName, contextType, chatId,
-    canShareToChat, isOneToOne, inClient,
-    init, getIdToken, sendToChat, close,
+    canShareToChat, isOneToOne, inClient, canPickTarget,
+    init, getIdToken, sendToChat, shareToPicked, close,
   }
 }

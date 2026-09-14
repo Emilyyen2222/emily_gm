@@ -3,7 +3,7 @@ import { MOOD_SCORE, careRate, type DailyRecord, type RecordsResponse } from '#s
 import { INSIGHT_MIN_RECORDS, buildInsights } from '#shared/utils/insights'
 import { buildWeeklyShareCard, lastWeekRange } from '#shared/utils/weeklyCard'
 
-const { ready, initError, displayName, canShareToChat, init, getIdToken, sendToChat } = useLiff()
+const { ready, initError, displayName, canShareToChat, canPickTarget, init, getIdToken, sendToChat, shareToPicked } = useLiff()
 
 const records = ref<DailyRecord[]>([])
 const today = ref<string | null>(null)
@@ -75,27 +75,52 @@ const weekRecords = computed(() => {
   return records.value.filter((r) => r.recordDate >= range.from && r.recordDate <= range.to)
 })
 const sharing = ref(false)
-const shareState = ref<'idle' | 'done' | 'error'>('idle')
+const previewing = ref(false)
+const shareState = ref<'idle' | 'done'>('idle')
 const shareError = ref<string | null>(null)
 
-async function shareWeek() {
+/** 能不能分享：在群組可以直接發，其他情境要看選擇器能不能用 */
+const canShareWeek = computed(() => canShareToChat.value || canPickTarget.value)
+
+const weekSummary = computed(() => {
+  const rs = weekRecords.value
+  const avg = (nums: number[]) => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null)
+  return {
+    sleep: avg(rs.map((r) => r.sleepScore).filter((n): n is number => n !== null)),
+    hours: avg(rs.map((r) => r.sleepHours).filter((n): n is number => n !== null)),
+    care: rs.length ? avg(rs.map(careRate)) : null,
+  }
+})
+
+async function confirmShare() {
   const range = weekRange.value
   if (!range || sharing.value) return
   sharing.value = true
   shareError.value = null
+
+  const card = buildWeeklyShareCard({
+    displayName: displayName.value,
+    from: range.from,
+    to: range.to,
+    records: weekRecords.value,
+  })
+
   try {
-    await sendToChat(
-      buildWeeklyShareCard({
-        displayName: displayName.value,
-        from: range.from,
-        to: range.to,
-        records: weekRecords.value,
-      }),
-    )
-    shareState.value = 'done'
+    if (canShareToChat.value) {
+      // 從聊天室開啟的，直接發到那裡 —— 對象很明確，再問一次反而多餘
+      await sendToChat(card)
+      shareState.value = 'done'
+      previewing.value = false
+    } else {
+      const shared = await shareToPicked(card)
+      if (shared) {
+        shareState.value = 'done'
+        previewing.value = false
+      }
+      // 使用者在選擇面板按取消時什麼都不做，維持在預覽狀態
+    }
   } catch (err: any) {
-    shareState.value = 'error'
-    shareError.value = err?.message ?? '分享失敗，請再試一次'
+    shareError.value = `${err?.code ? err.code + '：' : ''}${err?.message ?? '分享失敗，請再試一次'}`
   } finally {
     sharing.value = false
   }
@@ -127,22 +152,82 @@ function shortDate(date: string) {
       </div>
 
       <div v-else class="space-y-4">
-        <!-- 分享上週回顧：只有從群組開啟時才出現 -->
-        <section v-if="canShareToChat && weekRange" class="rounded-2xl border border-brand-border bg-white p-4">
+        <!-- 分享上週回顧 -->
+        <section v-if="weekRange" class="rounded-2xl border border-brand-border bg-white p-4">
           <p class="text-body font-bold text-brand-brown">上週回顧</p>
           <p class="mt-0.5 text-caption text-brand-brown-light">
             {{ weekRange.from.slice(5).replace('-', '/') }} – {{ weekRange.to.slice(5).replace('-', '/') }}・記錄 {{ weekRecords.length }} 天
           </p>
+
+          <!-- 預覽：讓使用者看到「實際會發出去的那張卡片」本身。
+               用文字清單說明分享範圍會過期（加了新欄位就變成謊言），預覽不會。 -->
+          <div v-if="previewing" class="mt-3 rounded-xl border-2 border-brand-gold bg-brand-cream p-4">
+            <div class="flex items-center gap-2">
+              <span class="h-4 w-1 rounded-full bg-brand-orange" />
+              <span class="text-caption font-bold text-brand-orange">上週回顧</span>
+            </div>
+            <p class="mt-2 text-h3 font-bold text-brand-brown">{{ displayName ?? '你' }}</p>
+            <p class="text-caption text-brand-brown-light">
+              {{ weekRange.from.slice(5).replace('-', '/') }} – {{ weekRange.to.slice(5).replace('-', '/') }}
+            </p>
+            <div class="mt-3 space-y-2 border-t border-brand-border pt-3">
+              <div class="flex justify-between text-body">
+                <span class="text-brand-brown-light">記錄天數</span>
+                <span class="font-bold text-brand-brown">{{ weekRecords.length }} / 7 天</span>
+              </div>
+              <div v-if="weekSummary.sleep !== null" class="flex justify-between text-body">
+                <span class="text-brand-brown-light">平均睡眠</span>
+                <span class="font-bold text-brand-brown">{{ Math.round(weekSummary.sleep) }}%</span>
+              </div>
+              <div v-if="weekSummary.hours !== null" class="flex justify-between text-body">
+                <span class="text-brand-brown-light">平均睡了</span>
+                <span class="font-bold text-brand-brown">{{ weekSummary.hours.toFixed(1) }} 小時</span>
+              </div>
+              <div v-if="weekSummary.care !== null" class="flex justify-between text-body">
+                <span class="text-brand-brown-light">自我照顧</span>
+                <span class="font-bold text-brand-brown">{{ Math.round(weekSummary.care) }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="previewing" class="mt-2 text-caption text-brand-brown-light">
+            發出去的就是這張，備註和洞察不會跟著出去
+          </p>
+
+          <div v-if="previewing" class="mt-3 flex gap-2">
+            <button
+              type="button"
+              class="h-12 flex-1 rounded-xl border-2 border-brand-border bg-white text-body font-medium text-brand-brown-light"
+              @click="previewing = false"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              :disabled="sharing"
+              class="h-12 flex-[2] rounded-xl bg-brand-orange text-body font-bold text-white transition active:bg-brand-orange-dark disabled:opacity-50"
+              @click="confirmShare"
+            >
+              {{ sharing ? '分享中…' : canShareToChat ? '確認分享' : '選擇分享對象' }}
+            </button>
+          </div>
+
           <button
+            v-else-if="canShareWeek"
             type="button"
-            :disabled="sharing || !weekRecords.length"
+            :disabled="!weekRecords.length"
             class="mt-3 h-12 w-full rounded-xl bg-brand-orange text-body font-bold text-white transition active:bg-brand-orange-dark disabled:opacity-50"
-            @click="shareWeek"
+            @click="previewing = true; shareState = 'idle'; shareError = null"
           >
-            {{ sharing ? '分享中…' : shareState === 'done' ? '已分享' : '分享到群組' }}
+            {{ shareState === 'done' ? '已分享，再分享一次' : canShareToChat ? '分享到這個群組' : '分享' }}
           </button>
+
+          <p v-else class="mt-3 text-caption text-brand-brown-light">
+            想分享到群組的話，從群組裡開啟這一頁
+          </p>
+
           <p v-if="!weekRecords.length" class="mt-2 text-caption text-brand-brown-light">上週沒有紀錄</p>
-          <p v-if="shareError" class="mt-2 text-caption text-red-600">{{ shareError }}</p>
+          <p v-if="shareError" class="mt-2 break-all text-caption text-red-600">{{ shareError }}</p>
         </section>
 
         <!-- 三個平均值 -->
