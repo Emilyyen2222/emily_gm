@@ -79,9 +79,14 @@ export function useLiff() {
   /**
    * 讓使用者自己挑要分享到哪些聊天室。回傳 false 代表使用者取消。
    *
-   * 刻意「不」先看 isApiAvailable 就擋下來：那個判斷可能偏保守，而實際
-   * 呼叫拋出的錯誤帶有錯誤碼，能對照 LIFF 文件查出真正的原因。先擋下來
-   * 只會得到我自己寫的那句話，等於把診斷資訊丟掉。
+   * 目前這個 LIFF 應用沒有這個權限，實測會拋出
+   * 「FORBIDDEN: shareTargetPicker is not allowed in this LIFF app」。
+   * 那是應用層級的授權，不是執行環境或 LINE 版本的問題 —— 但 Console
+   * 的 LIFF 設定頁沒有對應開關，LIFF 管理 API 也沒有這個欄位
+   * （送 features.shareTargetPicker 會回 200 但完全不生效）。
+   *
+   * 所以呼叫端一律先用 canPickTarget 判斷，不可用時退回「從群組開啟」的
+   * 提示。這段程式保留著：哪天 LINE 開放了，把判斷放行就能直接用。
    */
   async function shareToPicked(message: unknown): Promise<boolean> {
     const available = liff.isApiAvailable('shareTargetPicker')
