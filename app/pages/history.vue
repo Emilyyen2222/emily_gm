@@ -3,7 +3,7 @@ import { MOOD_SCORE, careRate, type DailyRecord, type RecordsResponse } from '#s
 import { INSIGHT_MIN_RECORDS, buildInsights } from '#shared/utils/insights'
 import { buildWeeklyShareCard, lastWeekRange } from '#shared/utils/weeklyCard'
 
-const { ready, initError, displayName, canShareToChat, canPickTarget, init, getIdToken, sendToChat, shareToPicked } = useLiff()
+const { ready, initError, displayName, canShareToChat, isOneToOne, canPickTarget, init, getIdToken, sendToChat, shareToPicked } = useLiff()
 
 const records = ref<DailyRecord[]>([])
 const today = ref<string | null>(null)
@@ -79,8 +79,15 @@ const previewing = ref(false)
 const shareState = ref<'idle' | 'done'>('idle')
 const shareError = ref<string | null>(null)
 
-/** 能不能分享：在群組可以直接發，其他情境要看選擇器能不能用 */
-const canShareWeek = computed(() => canShareToChat.value || canPickTarget.value)
+/**
+ * 只有在群組／多人聊天室才直接發送。
+ *
+ * 不能沿用 canShareToChat —— 那個為了「每日卡片在一對一也能留一份」把
+ * utou 也算進去了。週回顧的目的是給別人看，發到只有自己和機器人的
+ * 一對一聊天室等於沒分享，所以那裡要走選擇器。
+ */
+const canDirectShare = computed(() => canShareToChat.value && !isOneToOne.value)
+const canShareWeek = computed(() => canDirectShare.value || canPickTarget.value)
 
 const weekSummary = computed(() => {
   const rs = weekRecords.value
@@ -106,8 +113,8 @@ async function confirmShare() {
   })
 
   try {
-    if (canShareToChat.value) {
-      // 從聊天室開啟的，直接發到那裡 —— 對象很明確，再問一次反而多餘
+    if (canDirectShare.value) {
+      // 從群組開啟的，直接發到那裡 —— 對象很明確，再問一次反而多餘
       await sendToChat(card)
       shareState.value = 'done'
       previewing.value = false
@@ -208,7 +215,7 @@ function shortDate(date: string) {
               class="h-12 flex-[2] rounded-xl bg-brand-orange text-body font-bold text-white transition active:bg-brand-orange-dark disabled:opacity-50"
               @click="confirmShare"
             >
-              {{ sharing ? '分享中…' : canShareToChat ? '確認分享' : '選擇分享對象' }}
+              {{ sharing ? '分享中…' : canDirectShare ? '確認分享' : '選擇分享對象' }}
             </button>
           </div>
 
@@ -219,7 +226,7 @@ function shortDate(date: string) {
             class="mt-3 h-12 w-full rounded-xl bg-brand-orange text-body font-bold text-white transition active:bg-brand-orange-dark disabled:opacity-50"
             @click="previewing = true; shareState = 'idle'; shareError = null"
           >
-            {{ shareState === 'done' ? '已分享，再分享一次' : canShareToChat ? '分享到這個群組' : '分享' }}
+            {{ shareState === 'done' ? '已分享，再分享一次' : canDirectShare ? '分享到這個群組' : '分享' }}
           </button>
 
           <p v-else class="mt-3 text-caption text-brand-brown-light">
