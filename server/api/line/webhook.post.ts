@@ -44,11 +44,14 @@ export default defineEventHandler(async (event) => {
         continue
       }
 
-      // 加好友時登記成推播目標。群組被退掉之後，一對一是唯一還能主動提醒的管道
-      const { error } = await supabase
-        .from('chats')
-        .upsert({ chat_id: userId, chat_type: 'user', active: true }, { onConflict: 'chat_id' })
-      handled.push(error ? `follow: 登記失敗 ${error.message}` : 'follow: 已登記為推播對象')
+      // 刻意「不」把加好友的人登記成推播目標。
+      //
+      // 推播是按觸及人數計費的，免費額度只有 200 則/月，多一個一對一對象
+      // 就是每月多 60 則。而目前的使用者都是從群組進來的，一對一推播對他們
+      // 只是收到第二份一模一樣的提醒。
+      //
+      // 下面的歡迎卡片走 reply，不計入額度，所以加好友的人照樣會收到
+      // 說明和記錄連結，只是不會每天被推播。需要的話再手動加進 chats。
 
       if (!ev.replyToken) {
         handled.push('follow: 沒有 replyToken，無法打招呼')
