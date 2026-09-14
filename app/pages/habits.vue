@@ -137,7 +137,7 @@ async function save() {
               v-model="draft"
               type="text"
               :maxlength="HABIT_LABEL_MAX"
-              placeholder="例如：練琴、不熬夜"
+              placeholder="例如：不熬夜、記帳"
               class="h-12 min-w-0 flex-1 rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown placeholder:text-brand-brown-light/60 focus:border-brand-orange focus:outline-none"
               @keyup.enter="addCustom"
             >
