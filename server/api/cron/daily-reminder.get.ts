@@ -5,7 +5,7 @@
  * 而是在這裡判斷「今天是不是星期一」再決定要不要一併發出。
  */
 export default defineEventHandler(async (event) => {
-  return runReminder(event, 'daily-reminder', async (url) => {
+  return runReminder(event, 'daily-reminder', async (url, chat) => {
     const messages: unknown[] = [
       reminderCard({
         label: '早安',
@@ -16,7 +16,9 @@ export default defineEventHandler(async (event) => {
       }),
     ]
 
-    if (taipeiWeekday() === 1) {
+    // 週報只發給群組。一對一聊天室裡談「大家」沒有意義 ——
+    // 那個人不一定跟其他記錄者有任何關係。
+    if (taipeiWeekday() === 1 && chat.chatType !== 'user') {
       const weekly = await buildWeeklyReport(taipeiToday())
       if (weekly) messages.push(weekly)
     }

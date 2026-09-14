@@ -7,7 +7,7 @@ import type { H3Event } from 'h3'
 export async function runReminder(
   event: H3Event,
   job: string,
-  buildMessages: (url: string) => Promise<unknown[]>,
+  buildMessages: (url: string, chat: { chatId: string; chatType: string }) => Promise<unknown[]>,
 ) {
   const config = useRuntimeConfig()
   const supabase = useSupabase()
@@ -44,7 +44,7 @@ export async function runReminder(
     throw createError({ statusCode: 401, statusMessage: '未授權' })
   }
 
-  const { data: chats, error } = await supabase.from('chats').select('chat_id').eq('active', true)
+  const { data: chats, error } = await supabase.from('chats').select('chat_id, chat_type').eq('active', true)
   if (error) {
     await finish({ status: 'failed', note: `讀取推播目標失敗：${error.message}` })
     throw createError({ statusCode: 500, statusMessage: `讀取推播目標失敗：${error.message}` })
@@ -56,12 +56,14 @@ export async function runReminder(
     return { sent: 0, failed: [], note }
   }
 
-  const messages = await buildMessages(liffUrl())
+  const url = liffUrl()
 
   let sent = 0
   const failed: string[] = []
   for (const chat of chats) {
     try {
+      // 每個聊天室各自組訊息：群組與一對一該看到的東西不一樣
+      const messages = await buildMessages(url, { chatId: chat.chat_id, chatType: chat.chat_type })
       await pushMessage(chat.chat_id, messages)
       sent++
     } catch {

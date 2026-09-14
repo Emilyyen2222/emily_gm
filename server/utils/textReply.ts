@@ -55,8 +55,8 @@ export async function buildTextReply(
     return weekCard({ from: from.slice(5).replace('-', '/'), to: today.slice(5).replace('-', '/'), ...summary, url })
   }
 
-  if (/^(排行|排名)$/.test(text)) {
-    // 排行是群組功能，一對一看自己的排行沒有意義
+  if (/^(排行|排名|回顧)$/.test(text)) {
+    // 只在群組回應：卡片談的是「大家」，在一對一聊天室沒有意義
     if (!chatId) return helpCard(url, inGroup)
     return (await buildWeeklyReport(taipeiToday())) ?? helpCard(url, inGroup)
   }
