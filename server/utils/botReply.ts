@@ -1,4 +1,4 @@
-import { MOOD_SCORE, STEPS_GOAL, careRate, type DailyRecord } from '../../shared/types/record'
+import { MOOD_SCORE, careRate, type DailyRecord } from '../../shared/types/record'
 
 const C = {
   orange: '#F9A726',
@@ -140,7 +140,6 @@ export function weekCard(opts: {
   to: string
   sleep: number | null
   care: number | null
-  steps: number | null
   days: number
   url: string
 }) {
@@ -160,7 +159,6 @@ export function weekCard(opts: {
           contents: [
             row('睡眠平均', opts.sleep === null ? '－' : `${opts.sleep}%`),
             row('自我照顧', opts.care === null ? '－' : `${opts.care}%`),
-            row('平均步數', opts.steps === null ? '－' : `${opts.steps.toLocaleString()} 步`),
             row('記錄天數', `${opts.days} / 7`),
           ],
         },
@@ -176,7 +174,6 @@ export function summarise(records: DailyRecord[]) {
   return {
     sleep: avg(records.map((r) => r.sleepScore).filter((n): n is number => n !== null)),
     care: records.length ? avg(records.map(careRate)) : null,
-    steps: avg(records.map((r) => r.steps).filter((n): n is number => n !== null)),
     days: records.length,
   }
 }

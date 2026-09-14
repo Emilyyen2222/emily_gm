@@ -33,6 +33,8 @@ export const DEFAULT_HABITS: string[] = ['敲肝經膽經', '吃膠原蛋白', '
 
 export const HABIT_MIN = 2
 export const HABIT_MAX = 5
+/** 自訂項目的字數上限。太長會在表單的按鈕上撐破版面 */
+export const HABIT_LABEL_MAX = 8
 
 /** 睡眠的五個等級。無 0：睡了就不可能是 0%，而且趨勢圖會直接掉到底，看起來像災難。
  *  這五個值與舊資料一致（當初由 1–5 分換算而來）。 */
@@ -48,9 +50,6 @@ export const MOOD_SCORE: Record<string, number> = {
   '😔': 33,
   '😡': 0,
 }
-
-/** 走路達標的門檻，用於顯示與關聯分析 */
-export const STEPS_GOAL = 5000
 
 
 
@@ -74,7 +73,6 @@ export interface RecordInput {
   bowelNote: string | null
   leaveHomeTime: string | null
   leaveOfficeTime: string | null
-  steps: number | null
   allergy: string[]
   allergyNote: string | null
   mood: string | null
@@ -126,7 +124,6 @@ export function emptyRecordInput(): RecordInput {
     bowelNote: null,
     leaveHomeTime: null,
     leaveOfficeTime: null,
-    steps: null,
     allergy: [],
     allergyNote: null,
     mood: null,
@@ -146,7 +143,6 @@ export function countFilled(input: RecordInput): { filled: number; total: number
     input.bowelMovement !== null,
     input.leaveHomeTime !== null,
     input.leaveOfficeTime !== null,
-    input.steps !== null,
     input.allergy.length > 0,
     input.mood !== null,
     input.liverCare.length > 0,
@@ -169,12 +165,25 @@ export function careRate(record: { liverScore: number; liverTotal: number }): nu
   return record.liverTotal > 0 ? Math.round((record.liverScore / record.liverTotal) * 100) : 0
 }
 
-/** 清洗使用者選的項目：必須在項目池內、去重、數量在 2–5 之間 */
+/**
+ * 清洗使用者選的項目。
+ *
+ * 允許項目池以外的自訂字串 —— 池子再怎麼加也涵蓋不了每個人，有人想記
+ * 「練琴」「不熬夜」，那對他們才是真正的自我照顧。字串不一致（「運動」
+ * 與「去運動」）不構成問題，因為我們從不跨使用者比較項目內容：
+ * 週報比的是達成率，洞察比的是同一個人有做與沒做的日子。
+ */
 export function sanitizeHabits(input: unknown): string[] | null {
   if (!Array.isArray(input)) return null
-  const pool = HABIT_POOL as readonly string[]
-  const picked = [...new Set(input.filter((v): v is string => typeof v === 'string' && pool.includes(v)))]
+  const cleaned = input
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim().slice(0, HABIT_LABEL_MAX))
+    .filter(Boolean)
+  const picked = [...new Set(cleaned)]
   if (picked.length < HABIT_MIN || picked.length > HABIT_MAX) return null
-  // 依照項目池的順序排列，畫面上才不會因為點選順序不同而跳來跳去
-  return pool.filter((h) => picked.includes(h))
+
+  // 池子裡的項目照池子的順序排在前面，自訂的接在後面 ——
+  // 畫面上才不會因為點選順序不同而每次都跳來跳去
+  const pool = HABIT_POOL as readonly string[]
+  return [...pool.filter((h) => picked.includes(h)), ...picked.filter((h) => !pool.includes(h))]
 }

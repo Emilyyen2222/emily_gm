@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HABIT_MAX, HABIT_MIN, HABIT_POOL } from '#shared/types/record'
+import { HABIT_LABEL_MAX, HABIT_MAX, HABIT_MIN, HABIT_POOL } from '#shared/types/record'
 
 const { ready, initError, init, getIdToken } = useLiff()
 const route = useRoute()
@@ -33,6 +33,32 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+/** 使用者自己加的項目：已選但不在池子裡的，也要當成按鈕顯示出來，否則無法取消 */
+const customSelected = computed(() => selected.value.filter((h) => !(HABIT_POOL as readonly string[]).includes(h)))
+
+const draft = ref('')
+const draftError = ref<string | null>(null)
+
+function addCustom() {
+  const value = draft.value.trim()
+  draftError.value = null
+  if (!value) return
+  if (value.length > HABIT_LABEL_MAX) {
+    draftError.value = `最多 ${HABIT_LABEL_MAX} 個字`
+    return
+  }
+  if (selected.value.includes(value)) {
+    draftError.value = '已經選過了'
+    return
+  }
+  if (count.value >= HABIT_MAX) {
+    draftError.value = `最多 ${HABIT_MAX} 項，想加要先取消一項`
+    return
+  }
+  selected.value = [...selected.value, value]
+  draft.value = ''
+}
 
 function toggle(habit: string) {
   if (selected.value.includes(habit)) {
@@ -92,7 +118,41 @@ async function save() {
           </button>
         </div>
 
-        <p class="mt-4 text-body text-brand-brown-light">
+        <div v-if="customSelected.length" class="mt-3 flex flex-wrap gap-2">
+          <button
+            v-for="habit in customSelected"
+            :key="habit"
+            type="button"
+            class="min-h-12 rounded-xl border-2 border-brand-orange bg-brand-orange px-4 text-body font-medium text-white"
+            @click="toggle(habit)"
+          >
+            {{ habit }}
+          </button>
+        </div>
+
+        <div class="mt-5 border-t border-brand-border pt-4">
+          <p class="mb-2 text-body font-bold text-brand-brown">自己加一項</p>
+          <div class="flex gap-2">
+            <input
+              v-model="draft"
+              type="text"
+              :maxlength="HABIT_LABEL_MAX"
+              placeholder="例如：練琴、不熬夜"
+              class="h-12 flex-1 rounded-xl border-2 border-brand-border bg-white px-4 text-brand-brown placeholder:text-brand-brown-light/60 focus:border-brand-orange focus:outline-none"
+              @keyup.enter="addCustom"
+            >
+            <button
+              type="button"
+              class="h-12 shrink-0 rounded-xl border-2 border-brand-orange px-5 text-body font-bold text-brand-orange"
+              @click="addCustom"
+            >
+              加入
+            </button>
+          </div>
+          <p v-if="draftError" class="mt-1 text-caption text-red-600">{{ draftError }}</p>
+        </div>
+
+        <p class="mt-5 text-body text-brand-brown-light">
           已選 <span class="font-bold text-brand-brown">{{ count }}</span> 項
           <span v-if="count >= HABIT_MAX" class="text-caption">（最多 {{ HABIT_MAX }} 項，想換要先取消一項）</span>
         </p>

@@ -57,7 +57,6 @@ export function buildDailyFlexMessage(record: DailyRecord) {
         row('睡眠', record.sleepScore === null ? '－' : `${record.sleepScore}%`),
         row('心情', record.mood ?? '－'),
         row('自我照顧', `${record.liverScore} / ${record.liverTotal}`),
-        ...(record.steps === null ? [] : [row('步數', `${record.steps.toLocaleString()} 步`)]),
         // 每個人選的項目不同，只看「2 / 3」不知道是哪兩項，
         // 而別人做了什麼本來就是群組裡最有意思的資訊
         ...(record.liverCare.length
