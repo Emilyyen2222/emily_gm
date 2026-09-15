@@ -8,6 +8,9 @@ import {
 } from '#shared/types/record'
 
 const model = defineModel<ExpenseItem[]>({ default: () => [] })
+/** 使用者設定的稱呼。開關上直接寫「給 TC 看」，比「分享／不分享」好懂 —— 看的人是誰是最重要的資訊 */
+const props = defineProps<{ shareLabel?: string | null }>()
+const seeLabel = computed(() => (props.shareLabel ? `給 ${props.shareLabel} 看` : '分享出去'))
 
 const total = computed(() => model.value.reduce((sum, e) => sum + (e.amount || 0), 0))
 const sharedCount = computed(() => model.value.filter((e) => e.shared && e.item.trim()).length)
@@ -64,17 +67,23 @@ function toggleShare(index: number) {
           class="w-24 shrink-0 rounded-xl border-2 border-brand-border bg-white px-3 py-2.5 text-body text-brand-brown placeholder:text-brand-brown-light/60 focus:border-brand-orange focus:outline-none"
           @input="setAmount(index, ($event.target as HTMLInputElement).value)"
         />
-        <!-- 每一筆自己的分享開關。亮橘色＝會被別人看到，關著的樣子要明顯是「關」 -->
+        <!-- 每一筆自己的分享開關。
+             原本只寫「分享／不分享」，使用者看不出那是目前狀態還是按下去的結果，
+             也看不出會被誰看到。改成打勾框＋對象名字，兩件事都寫在上面。 -->
         <button
           type="button"
-          class="h-11 shrink-0 rounded-xl border-2 px-2.5 text-caption font-medium transition"
+          class="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 px-2.5 text-caption font-medium transition"
           :class="expense.shared
             ? 'border-brand-orange bg-brand-orange text-white'
             : 'border-brand-border bg-white text-brand-brown-light'"
           :aria-pressed="expense.shared"
           @click="toggleShare(index)"
         >
-          {{ expense.shared ? '分享' : '不分享' }}
+          <span
+            class="flex h-4 w-4 items-center justify-center rounded border-2 text-[10px] leading-none"
+            :class="expense.shared ? 'border-white bg-white text-brand-orange' : 'border-brand-border'"
+          >{{ expense.shared ? '✓' : '' }}</span>
+          <span>{{ seeLabel }}</span>
         </button>
         <button
           type="button"
@@ -104,8 +113,8 @@ function toggleShare(index: number) {
         <span class="font-bold text-brand-brown">{{ formatAmount(total) }}</span>
       </div>
       <p class="mt-1 text-caption text-brand-brown-light">
-        <span v-if="sharedCount">卡片上只會出現你設成「分享」的那 {{ sharedCount }} 筆，小計不會出現</span>
-        <span v-else>目前都不分享，這些只有你看得到</span>
+        <span v-if="sharedCount">打勾的 {{ sharedCount }} 筆會出現在卡片上，小計不會</span>
+        <span v-else>還沒有打勾的，目前只有你看得到</span>
       </p>
     </div>
   </div>

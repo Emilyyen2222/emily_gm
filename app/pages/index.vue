@@ -383,19 +383,30 @@ async function submit(share: boolean) {
             </template>
           </div>
 
-          <ExpenseList v-model="form.expenses" />
+          <ExpenseList v-model="form.expenses" :share-label="expenseLabel" />
 
           <!-- 花費走自己的按鈕：這張卡片只有金額，不含任何健康資料，
-               而下面那顆「分享」發出的每日狀態卡片則完全不含金額。 -->
-          <div v-if="sharedExpenseCount" class="mt-4 border-t border-brand-border pt-4">
+               而下面那顆「分享」發出的每日狀態卡片則完全不含金額。
+               按鈕一律顯示、沒勾時變成灰的 —— 原本沒勾就整個藏起來，
+               等於使用者永遠看不到記帳要怎麼傳出去。 -->
+          <div v-if="form.expenses.length" class="mt-4 border-t border-brand-border pt-4">
             <button
               v-if="canShareToChat"
               type="button"
-              :disabled="pending !== null"
-              class="h-12 w-full rounded-xl border-2 border-brand-orange bg-white text-body font-bold text-brand-orange transition active:scale-[0.99] disabled:opacity-50"
+              :disabled="pending !== null || !sharedExpenseCount"
+              class="h-12 w-full rounded-xl border-2 text-body font-bold transition active:scale-[0.99]"
+              :class="sharedExpenseCount
+                ? 'border-brand-orange bg-brand-orange text-white disabled:opacity-50'
+                : 'border-brand-border bg-white text-brand-brown-light'"
               @click="shareExpenses"
             >
-              {{ pending === 'expense' ? '傳送中…' : `把這 ${sharedExpenseCount} 筆花費傳到這個聊天室` }}
+              <template v-if="pending === 'expense'">傳送中…</template>
+              <template v-else-if="sharedExpenseCount">
+                傳 {{ sharedExpenseCount }} 筆花費{{ expenseLabel ? ` 給 ${expenseLabel}` : '' }}
+              </template>
+              <template v-else>
+                先打勾要{{ expenseLabel ? `給 ${expenseLabel} 看` : '分享' }}的花費
+              </template>
             </button>
             <p v-else class="text-caption text-brand-brown-light">
               這次不是從聊天室開啟的，沒辦法傳花費。想傳給誰，就從跟他的對話裡點連結進來。
