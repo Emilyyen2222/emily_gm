@@ -111,7 +111,7 @@ function toggleShare(index: number) {
         <span class="font-bold text-brand-brown">{{ formatAmount(total) }}</span>
       </div>
       <p class="mt-1 text-caption text-brand-brown-light">
-        <span v-if="sharedCount">打勾的 {{ sharedCount }} 筆會出現在卡片上，小計不會</span>
+        <span v-if="sharedCount">卡片上只會顯示有打勾的那 {{ sharedCount }} 筆</span>
         <span v-else>還沒有打勾的，目前只有你看得到</span>
       </p>
     </div>
