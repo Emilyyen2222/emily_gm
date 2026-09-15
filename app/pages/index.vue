@@ -354,7 +354,11 @@ async function submit(share: boolean) {
           </NuxtLink>
         </FormSection>
 
-        <FormSection title="記帳" hint="想記的才記，每一筆自己決定要不要分享">
+        <FormSection title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
+          <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
+        </FormSection>
+
+        <FormSection title="記帳" hint="花費要用這個區塊裡的按鈕傳，畫面最下面那顆分享不會帶到金額">
           <!-- 稱呼是每人一份的設定，不是每天填的內容，所以不進 form -->
           <div class="mb-3 flex flex-wrap items-center gap-2 text-caption text-brand-brown-light">
             <template v-if="!labelEditing">
@@ -420,9 +424,6 @@ async function submit(share: boolean) {
           </div>
         </FormSection>
 
-        <FormSection title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
-          <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
-        </FormSection>
 
         <p v-if="noShareReason" class="rounded-2xl border border-brand-border bg-white p-4 text-caption text-brand-brown-light">
           {{ noShareReason }}
