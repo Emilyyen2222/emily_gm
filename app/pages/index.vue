@@ -366,7 +366,7 @@ async function submit(share: boolean) {
           <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
         </FormSection>
 
-        <FormSection variant="aside" title="記帳" hint="花費要用這個區塊裡的按鈕傳，畫面最下面那顆分享不會帶到金額">
+        <FormSection variant="aside" title="記帳" hint="記完打勾，用下面的按鈕傳出去">
           <!-- 稱呼是每人一份的設定，不是每天填的內容，所以不進 form -->
           <div class="mb-3 flex flex-wrap items-center gap-2 text-caption text-brand-brown-light">
             <template v-if="!labelEditing">
@@ -408,7 +408,7 @@ async function submit(share: boolean) {
               :disabled="pending !== null || !sharedExpenseCount"
               class="h-12 w-full rounded-xl border-2 text-body font-bold transition active:scale-[0.99]"
               :class="sharedExpenseCount
-                ? 'border-brand-orange bg-brand-orange text-white disabled:opacity-50'
+                ? 'border-brand-brown bg-brand-brown text-white active:bg-brand-brown-hover disabled:opacity-50'
                 : 'border-brand-border bg-white text-brand-brown-light'"
               @click="shareExpenses"
             >
