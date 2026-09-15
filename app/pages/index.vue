@@ -354,11 +354,19 @@ async function submit(share: boolean) {
           </NuxtLink>
         </FormSection>
 
-        <FormSection title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
+        <!-- 這道分隔線以下都不會進今日狀態卡片。區塊底色也跟著換成米色，
+             不必逐條讀小字說明才知道自己填的東西會跑去哪裡 -->
+        <div class="flex items-center gap-3 pt-2">
+          <span class="h-px flex-1 bg-brand-border" />
+          <span class="text-caption text-brand-brown-light">以下不會出現在今日狀態卡片</span>
+          <span class="h-px flex-1 bg-brand-border" />
+        </div>
+
+        <FormSection variant="aside" title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
           <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
         </FormSection>
 
-        <FormSection title="記帳" hint="花費要用這個區塊裡的按鈕傳，畫面最下面那顆分享不會帶到金額">
+        <FormSection variant="aside" title="記帳" hint="花費要用這個區塊裡的按鈕傳，畫面最下面那顆分享不會帶到金額">
           <!-- 稱呼是每人一份的設定，不是每天填的內容，所以不進 form -->
           <div class="mb-3 flex flex-wrap items-center gap-2 text-caption text-brand-brown-light">
             <template v-if="!labelEditing">
