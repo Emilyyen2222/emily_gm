@@ -57,6 +57,9 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
     throw createError({ statusCode: 500, statusMessage: `寫入失敗：${error.message}` })
   }
 
+  // 花費在另一張表，每次送出都以表單上的完整清單覆寫當天的內容
+  const expenses = await replaceExpenses(userId, recordDate, input.expenses)
+
   // 暱稱可能會變，順手更新；失敗不影響主要流程
   await supabase
     .from('users')
@@ -65,5 +68,5 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
       { onConflict: 'user_id', ignoreDuplicates: false },
     )
 
-  return { record: rowToRecord(data) }
+  return { record: rowToRecord(data, expenses) }
 })

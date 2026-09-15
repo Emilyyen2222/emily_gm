@@ -27,5 +27,7 @@ export default defineEventHandler(async (event): Promise<RecordsResponse> => {
     throw createError({ statusCode: 500, statusMessage: `查詢失敗：${error.message}` })
   }
 
-  return { today, records: (data ?? []).map(rowToRecord) }
+  const expensesByDate = await getExpensesByDate(userId, since, today)
+
+  return { today, records: (data ?? []).map((row) => rowToRecord(row, expensesByDate[row.record_date] ?? [])) }
 })

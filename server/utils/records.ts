@@ -6,11 +6,17 @@ import {
   NOTE_MAX_LENGTH,
   computeSleepHours,
   type DailyRecord,
+  type ExpenseItem,
   type RecordInput,
 } from '../../shared/types/record'
 
-/** 資料庫列 -> API 回傳格式（snake_case -> camelCase） */
-export function rowToRecord(row: Record<string, any>): DailyRecord {
+/**
+ * 資料庫列 -> API 回傳格式（snake_case -> camelCase）。
+ *
+ * 花費存在另一張表，由呼叫端自己讀出來傳進來。預設空陣列是刻意的：
+ * 忘了傳的地方就是不顯示花費，而不是顯示到不該顯示的地方。
+ */
+export function rowToRecord(row: Record<string, any>, expenses: ExpenseItem[] = []): DailyRecord {
   return {
     recordDate: row.record_date,
     displayName: row.display_name ?? null,
@@ -31,6 +37,7 @@ export function rowToRecord(row: Record<string, any>): DailyRecord {
     moodNote: row.mood_note ?? null,
     privateNote: row.private_note ?? null,
     liverCare: row.liver_care ?? [],
+    expenses,
     liverScore: row.liver_score ?? 0,
     liverTotal: row.liver_total ?? DEFAULT_HABITS.length,
     shared: row.shared ?? false,
@@ -83,6 +90,7 @@ export function sanitizeRecordInput(input: Partial<RecordInput>, habits: string[
     moodNote: cleanNote(input.moodNote),
     privateNote: cleanNote(input.privateNote),
     liverCare,
+    expenses: sanitizeExpenses(input.expenses),
     liverScore: liverCare.length,
     liverTotal: habits.length,
     shared: input.shared === true,

@@ -6,10 +6,12 @@ import {
   computeSleepHours,
   countFilled,
   emptyRecordInput,
+  EXPENSE_LABEL_MAX,
   type RecordsResponse,
   type SubmitRecordResponse,
 } from '#shared/types/record'
 import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
+import { buildExpenseFlexMessage, expenseCardTitle } from '#shared/utils/expenseCard'
 
 const { ready, initError, displayName, canShareToChat, isOneToOne, inClient, contextType, chatId, init, getIdToken, sendToChat, close } = useLiff()
 
@@ -27,12 +29,48 @@ const form = useState('record-form', () => emptyRecordInput())
 /** 已經從伺服器載入過哪一天的資料。同一天再回到這頁就不重新覆蓋 */
 const loadedDate = useState<string | null>('record-loaded-date', () => null)
 const loading = ref(true)
-const pending = ref<'save' | 'share' | null>(null)
+const pending = ref<'save' | 'share' | 'expense' | null>(null)
 const submitError = ref<string | null>(null)
 const justShared = ref(false)
 const prefillFailed = ref(false)
 const isUpdate = ref(false)
 const savedAt = ref<string | null>(null)
+/** 花費卡片剛發出去的提示。與主要按鈕分開，兩者送出的是不同的東西 */
+const expenseShared = ref(false)
+const expenseError = ref<string | null>(null)
+const sharedExpenseCount = computed(() => form.value.expenses.filter((e) => e.shared && e.item.trim()).length)
+
+/**
+ * 記帳卡片上的稱呼。每個人自己填 —— 這個 app 不只一個人在用，
+ * 寫死在程式裡的話，別人記帳時會在卡片上看到不屬於他的名字。
+ */
+const expenseLabel = useState<string | null>('expense-label', () => null)
+const labelEditing = ref(false)
+const labelDraft = ref('')
+const labelSaving = ref(false)
+
+function startEditLabel() {
+  labelDraft.value = expenseLabel.value ?? ''
+  labelEditing.value = true
+}
+
+async function saveLabel() {
+  if (labelSaving.value) return
+  labelSaving.value = true
+  try {
+    const idToken = await getIdToken()
+    const { label } = await $fetch<{ label: string | null }>('/api/expenses/label', {
+      method: 'PUT',
+      body: { idToken, label: labelDraft.value },
+    })
+    expenseLabel.value = label
+    labelEditing.value = false
+  } catch {
+    // 存不起來就維持在編輯狀態，不要假裝成功
+  } finally {
+    labelSaving.value = false
+  }
+}
 
 /** 這個人自己選的自我照顧項目。還沒設定過的人會先被帶去設定頁 */
 const habits = useState<string[]>('record-habits', () => [])
@@ -83,6 +121,16 @@ onMounted(async () => {
     }
     habits.value = habitData.habits
 
+    // 記帳稱呼。讀不到就當作沒設定，卡片會用中性標題，不影響其他功能
+    try {
+      const labelData = await $fetch<{ label: string | null }>('/api/expenses/label', {
+        headers: { 'x-liff-id-token': idToken },
+      })
+      expenseLabel.value = labelData.label
+    } catch {
+      expenseLabel.value = null
+    }
+
     const data = await $fetch<RecordsResponse>('/api/records/me', {
       query: { days: 1 },
       headers: { 'x-liff-id-token': idToken },
@@ -100,6 +148,8 @@ onMounted(async () => {
       const { shared, sourceChatId, ...rest } = today
       Object.assign(form.value, rest)
       form.value.allergy = [...today.allergy]
+      // 複製一份，避免表單直接改到伺服器回傳物件裡的同一個陣列
+      form.value.expenses = today.expenses.map((e) => ({ ...e }))
       // 過濾掉已經不在清單裡的項目。使用者換過項目之後，舊紀錄裡的項目
       // 在畫面上不會顯示、也就無法取消，卻還被算進達成數 ——
       // 那正是「兩項變三項卻顯示 133%」的來源。
@@ -113,6 +163,46 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+/**
+ * 分享花費。
+ *
+ * 與「儲存並分享」是兩條不同的路：這張卡片只含標成分享的花費、沒有任何
+ * 健康資料，而每日狀態卡片則完全不含金額。兩者的收件對象本來就不同，
+ * 混在一起就會把金額送進朋友群組。
+ *
+ * 一樣先存再送 —— 沒存就發卡片的話，卡片上的內容在紀錄裡查不到。
+ */
+async function shareExpenses() {
+  if (pending.value || !sharedExpenseCount.value) return
+  pending.value = 'expense'
+  expenseError.value = null
+  expenseShared.value = false
+
+  try {
+    const idToken = await getIdToken()
+    const { record } = await $fetch<SubmitRecordResponse>('/api/records', {
+      method: 'POST',
+      body: { ...form.value, shared: false, idToken },
+    })
+    isUpdate.value = true
+    savedAt.value = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
+
+    const card = buildExpenseFlexMessage({
+      displayName: record.displayName ?? displayName.value,
+      date: record.recordDate,
+      expenses: record.expenses,
+      label: expenseLabel.value,
+    })
+    if (!card) return
+    await sendToChat(card)
+    expenseShared.value = true
+  } catch (err: any) {
+    expenseError.value = err?.data?.statusMessage ?? err?.message ?? '花費沒發出去，請稍後再試'
+  } finally {
+    pending.value = null
+  }
+}
 
 async function submit(share: boolean) {
   if (pending.value) return
@@ -264,6 +354,61 @@ async function submit(share: boolean) {
           </NuxtLink>
         </FormSection>
 
+        <FormSection title="記帳" hint="想記的才記，每一筆自己決定要不要分享">
+          <!-- 稱呼是每人一份的設定，不是每天填的內容，所以不進 form -->
+          <div class="mb-3 flex flex-wrap items-center gap-2 text-caption text-brand-brown-light">
+            <template v-if="!labelEditing">
+              <span>卡片標題：<span class="font-bold text-brand-brown">{{ expenseCardTitle(expenseLabel) }}</span></span>
+              <button type="button" class="font-medium text-brand-orange underline" @click="startEditLabel">
+                {{ expenseLabel ? '改稱呼' : '設定稱呼' }}
+              </button>
+            </template>
+            <template v-else>
+              <input
+                v-model="labelDraft"
+                type="text"
+                placeholder="例如他的暱稱"
+                :maxlength="EXPENSE_LABEL_MAX"
+                class="w-32 rounded-xl border-2 border-brand-border bg-white px-3 py-2 text-body text-brand-brown placeholder:text-brand-brown-light/60 focus:border-brand-orange focus:outline-none"
+                @keyup.enter="saveLabel"
+              />
+              <button
+                type="button"
+                :disabled="labelSaving"
+                class="font-medium text-brand-orange underline disabled:opacity-50"
+                @click="saveLabel"
+              >{{ labelSaving ? '存檔中…' : '存起來' }}</button>
+              <button type="button" class="underline" @click="labelEditing = false">取消</button>
+              <span class="w-full">留空就只顯示「花費」</span>
+            </template>
+          </div>
+
+          <ExpenseList v-model="form.expenses" />
+
+          <!-- 花費走自己的按鈕：這張卡片只有金額，不含任何健康資料，
+               而下面那顆「分享」發出的每日狀態卡片則完全不含金額。 -->
+          <div v-if="sharedExpenseCount" class="mt-4 border-t border-brand-border pt-4">
+            <button
+              v-if="canShareToChat"
+              type="button"
+              :disabled="pending !== null"
+              class="h-12 w-full rounded-xl border-2 border-brand-orange bg-white text-body font-bold text-brand-orange transition active:scale-[0.99] disabled:opacity-50"
+              @click="shareExpenses"
+            >
+              {{ pending === 'expense' ? '傳送中…' : `把這 ${sharedExpenseCount} 筆花費傳到這個聊天室` }}
+            </button>
+            <p v-else class="text-caption text-brand-brown-light">
+              這次不是從聊天室開啟的，沒辦法傳花費。想傳給誰，就從跟他的對話裡點連結進來。
+            </p>
+            <p v-if="expenseShared" class="mt-2 text-center text-caption text-brand-green">
+              傳出去了，只有這個聊天室看得到
+            </p>
+            <p v-else-if="expenseError" class="mt-2 rounded-xl border-2 border-red-200 bg-red-50 p-3 text-body text-red-700">
+              {{ expenseError }}
+            </p>
+          </div>
+        </FormSection>
+
         <FormSection title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
           <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
         </FormSection>
@@ -319,7 +464,7 @@ async function submit(share: boolean) {
         </p>
 
         <p v-else-if="canShareToChat" class="mt-2 text-center text-caption text-brand-brown-light">
-          除了「只給自己的」，其他都會出現在卡片上
+          除了「只給自己的」和花費，其他都會出現在卡片上
         </p>
         <p v-else-if="noShareReason" class="mt-2 text-center text-caption text-brand-brown-light">
           {{ noShareReason }}

@@ -59,6 +59,28 @@ export const MOOD_SCORE: Record<string, number> = {
 /** 備註欄位的長度上限 */
 export const NOTE_MAX_LENGTH = 200
 
+/** 記帳品項的字數上限。卡片上一行放得下才有意義，太長會擠掉金額 */
+export const EXPENSE_ITEM_MAX = 20
+/** 一天最多記幾筆。這是防呆上限，不是想限制誰 */
+export const EXPENSE_MAX_ITEMS = 20
+/** 記帳卡片上稱呼的字數上限。卡片標題只有一行，太長會被截掉 */
+export const EXPENSE_LABEL_MAX = 8
+/** 單筆金額上限，與資料庫的 check 一致 */
+export const EXPENSE_AMOUNT_MAX = 1000000
+
+/**
+ * 一筆花費。
+ *
+ * shared 是「這一筆」要不要出現在分享卡片上，預設 false。
+ * 金額比其他欄位敏感，而且送進聊天室就收不回來 —— 寧可少分享，
+ * 不可多分享，所以這裡不跟著整張卡片的分享與否走，一筆一筆自己決定。
+ */
+export interface ExpenseItem {
+  item: string
+  amount: number
+  shared: boolean
+}
+
 /**
  * 使用者在表單上填的內容。
  * 所有欄位都可以是 null —— 這是刻意的：使用者可以只填一部分先送出，
@@ -81,6 +103,8 @@ export interface RecordInput {
   /** 只給自己的。永遠不會出現在分享卡片上 */
   privateNote: string | null
   liverCare: string[]
+  /** 今日花費。每一筆自己帶著要不要分享 */
+  expenses: ExpenseItem[]
   /** 本次是否分享到群組 */
   shared: boolean
   /** 開啟 LIFF 的來源聊天室（僅群組情境有值） */
@@ -135,6 +159,7 @@ export function emptyRecordInput(): RecordInput {
     moodNote: null,
     privateNote: null,
     liverCare: [],
+    expenses: [],
     shared: true,
     sourceChatId: null,
   }
@@ -191,4 +216,15 @@ export function sanitizeHabits(input: unknown): string[] | null {
   // 畫面上才不會因為點選順序不同而每次都跳來跳去
   const pool = HABIT_POOL as readonly string[]
   return [...pool.filter((h) => picked.includes(h)), ...picked.filter((h) => !pool.includes(h))]
+}
+
+
+/** 今日花費小計。只給本人看，不做任何跨使用者比較 */
+export function expenseTotal(expenses: ExpenseItem[]): number {
+  return expenses.reduce((sum, e) => sum + (Number.isFinite(e.amount) ? e.amount : 0), 0)
+}
+
+/** 金額顯示格式，例如 $1,250 */
+export function formatAmount(amount: number): string {
+  return `$${Math.round(amount).toLocaleString('en-US')}`
 }

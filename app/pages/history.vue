@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { MOOD_SCORE, careRate, type DailyRecord, type RecordsResponse } from '#shared/types/record'
+import { MOOD_SCORE, careRate, formatAmount, type DailyRecord, type RecordsResponse } from '#shared/types/record'
+import type { MonthlyExpensesResponse } from '~~/server/api/expenses/me.get'
 import { INSIGHT_MIN_RECORDS, buildInsights } from '#shared/utils/insights'
 import { buildWeeklyShareCard, lastWeekRange } from '#shared/utils/weeklyCard'
 
@@ -9,7 +10,7 @@ const records = ref<DailyRecord[]>([])
 const today = ref<string | null>(null)
 const loading = ref(true)
 const loadError = ref<string | null>(null)
-const tab = ref<'trend' | 'insight' | 'daily'>('trend')
+const tab = ref<'trend' | 'insight' | 'daily' | 'expense'>('trend')
 
 onMounted(async () => {
   await init()
@@ -31,6 +32,34 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+/**
+ * 記帳：切到那個分頁才載入。
+ *
+ * 不跟著頁面一起載是因為多數人根本沒在記帳，沒必要每次進來都多打一次 API。
+ * 與健康紀錄分開查是因為「本月」和「近 30 天」不是同一段區間。
+ */
+const expenseMonth = ref<MonthlyExpensesResponse | null>(null)
+const expenseLoading = ref(false)
+const expenseError = ref<string | null>(null)
+
+async function loadExpenses() {
+  if (expenseMonth.value || expenseLoading.value) return
+  expenseLoading.value = true
+  expenseError.value = null
+  try {
+    const idToken = await getIdToken()
+    expenseMonth.value = await $fetch<MonthlyExpensesResponse>('/api/expenses/me', {
+      headers: { 'x-liff-id-token': idToken },
+    })
+  } catch (err: any) {
+    expenseError.value = err?.data?.statusMessage ?? '讀取失敗'
+  } finally {
+    expenseLoading.value = false
+  }
+}
+
+watch(tab, (t) => { if (t === 'expense') loadExpenses() })
 
 /** 圖表要舊到新，列表要新到舊 */
 const chronological = computed(() => [...records.value].reverse())
@@ -292,7 +321,7 @@ function shortDate(date: string) {
         <!-- 分頁切換 -->
         <div class="flex gap-1 rounded-2xl border border-brand-border bg-white p-1">
           <button
-            v-for="t in [{ k: 'trend', label: '趨勢' }, { k: 'insight', label: '洞察' }, { k: 'daily', label: '每日' }]"
+            v-for="t in [{ k: 'trend', label: '趨勢' }, { k: 'insight', label: '洞察' }, { k: 'daily', label: '每日' }, { k: 'expense', label: '記帳' }]"
             :key="t.k"
             type="button"
             class="flex-1 rounded-xl py-2.5 text-body font-medium transition"
@@ -373,7 +402,7 @@ function shortDate(date: string) {
         </template>
 
         <!-- 每日 -->
-        <template v-else>
+        <template v-else-if="tab === 'daily'">
           <div v-if="!records.length" class="rounded-2xl border border-brand-border bg-white p-6 text-center text-body text-brand-brown-light">
             還沒有任何紀錄
           </div>
@@ -401,6 +430,49 @@ function shortDate(date: string) {
               </div>
             </div>
           </section>
+        </template>
+
+        <!-- 記帳。只有自己的資料，這一頁不做任何跨使用者比較 -->
+        <template v-else>
+          <div v-if="expenseLoading" class="h-28 animate-pulse rounded-2xl bg-brand-panel/60" />
+
+          <div v-else-if="expenseError" class="rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-body text-red-700">
+            {{ expenseError }}
+          </div>
+
+          <template v-else-if="expenseMonth">
+            <section class="rounded-2xl border border-brand-border bg-white p-4">
+              <p class="text-caption text-brand-brown-light">{{ expenseMonth.month.replace('-', ' / ') }} 合計</p>
+              <p class="mt-1 text-h2 font-bold text-brand-orange">{{ formatAmount(expenseMonth.total) }}</p>
+              <p class="mt-1 text-caption text-brand-brown-light">
+                記了 {{ expenseMonth.days.length }} 天・只有你看得到
+              </p>
+            </section>
+
+            <div v-if="!expenseMonth.days.length" class="rounded-2xl border border-brand-border bg-white p-6 text-center text-body text-brand-brown-light">
+              這個月還沒有記帳
+            </div>
+
+            <section
+              v-for="day in expenseMonth.days"
+              :key="day.date"
+              class="rounded-2xl border border-brand-border bg-white p-4"
+            >
+              <div class="flex items-baseline justify-between">
+                <h3 class="text-body font-bold text-brand-brown">{{ day.date.slice(5).replace('-', '/') }}</h3>
+                <span class="text-body font-bold text-brand-brown">{{ formatAmount(day.total) }}</span>
+              </div>
+              <dl class="mt-3 space-y-1.5">
+                <div v-for="(item, i) in day.items" :key="i" class="flex items-baseline gap-3 text-body">
+                  <dt class="flex-1 text-brand-brown-light">
+                    {{ item.item }}
+                    <span v-if="item.shared" class="ml-1 text-caption text-brand-orange">已分享</span>
+                  </dt>
+                  <dd class="shrink-0 text-brand-brown">{{ formatAmount(item.amount) }}</dd>
+                </div>
+              </dl>
+            </section>
+          </template>
         </template>
       </div>
     </div>

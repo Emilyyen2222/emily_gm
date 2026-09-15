@@ -25,6 +25,8 @@ create table if not exists records (
   steps          integer check (steps >= 0 and steps <= 200000),
   liver_care     text[] default '{}',
   liver_score    smallint default 0,
+  -- 那筆紀錄當下的分母（使用者當時選了幾項）。存下來，日後改設定不會讓歷史失真
+  liver_total    smallint,
   shared         boolean default false,
   source_chat_id text,
   created_at     timestamptz default now(),
@@ -35,6 +37,23 @@ create table if not exists records (
 );
 
 create index if not exists records_user_date_idx on records (user_id, record_date desc);
+
+-- 記帳：一天多筆，所以獨立成一張表。
+-- shared 預設 false —— 金額送進聊天室就收不回來，一律由使用者逐筆勾選。
+create table if not exists expenses (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    text not null,
+  spent_date date not null,
+  item       text not null,
+  amount     integer not null check (amount >= 0 and amount <= 1000000),
+  shared     boolean not null default false,
+  -- 表單上的排列順序。同一次送出的列 created_at 會一模一樣，
+  -- 沒有這一欄就無法還原使用者輸入的順序
+  sort_order smallint not null default 0,
+  created_at timestamptz default now()
+);
+
+create index if not exists expenses_user_date_idx on expenses (user_id, spent_date desc);
 
 -- 推播目標：groupId 只能從 LINE webhook 事件取得
 create table if not exists chats (
@@ -47,6 +66,10 @@ create table if not exists chats (
 create table if not exists users (
   user_id           text primary key,
   display_name      text,
+  -- 這個人自選的自我照顧項目（2–5 項）
+  habits            text[],
+  -- 記帳卡片上的稱呼（例如男友的暱稱）。沒填就顯示中性的「花費」
+  expense_label     text,
   first_seen_at     timestamptz default now(),
   consent_shared_at timestamptz
 );
@@ -56,3 +79,4 @@ create table if not exists users (
 alter table records enable row level security;
 alter table chats   enable row level security;
 alter table users   enable row level security;
+alter table expenses enable row level security;
