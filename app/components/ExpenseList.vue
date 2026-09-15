@@ -8,9 +8,6 @@ import {
 } from '#shared/types/record'
 
 const model = defineModel<ExpenseItem[]>({ default: () => [] })
-/** 使用者設定的稱呼。開關上直接寫「給 TC 看」，比「分享／不分享」好懂 —— 看的人是誰是最重要的資訊 */
-const props = defineProps<{ shareLabel?: string | null }>()
-const seeLabel = computed(() => (props.shareLabel ? `給 ${props.shareLabel} 看` : '分享出去'))
 
 const total = computed(() => model.value.reduce((sum, e) => sum + (e.amount || 0), 0))
 const sharedCount = computed(() => model.value.filter((e) => e.shared && e.item.trim()).length)
@@ -68,8 +65,9 @@ function toggleShare(index: number) {
           @input="setAmount(index, ($event.target as HTMLInputElement).value)"
         />
         <!-- 每一筆自己的分享開關。
-             原本只寫「分享／不分享」，使用者看不出那是目前狀態還是按下去的結果，
-             也看不出會被誰看到。改成打勾框＋對象名字，兩件事都寫在上面。 -->
+             原本只寫「分享／不分享」，使用者看不出那是目前狀態還是按下去的結果。
+             改成打勾框：有勾＝會傳出去，沒勾＝不會，狀態一眼就看得到。
+             按鈕上刻意不放稱呼——那是卡片標題用的，出現在每一列上只是雜訊。 -->
         <button
           type="button"
           class="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 px-2.5 text-caption font-medium transition"
@@ -83,7 +81,7 @@ function toggleShare(index: number) {
             class="flex h-4 w-4 items-center justify-center rounded border-2 text-[10px] leading-none"
             :class="expense.shared ? 'border-white bg-white text-brand-orange' : 'border-brand-border'"
           >{{ expense.shared ? '✓' : '' }}</span>
-          <span>{{ seeLabel }}</span>
+          <span>分享</span>
         </button>
         <button
           type="button"

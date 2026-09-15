@@ -387,7 +387,7 @@ async function submit(share: boolean) {
             </template>
           </div>
 
-          <ExpenseList v-model="form.expenses" :share-label="expenseLabel" />
+          <ExpenseList v-model="form.expenses" />
 
           <!-- 花費走自己的按鈕：這張卡片只有金額，不含任何健康資料，
                而下面那顆「分享」發出的每日狀態卡片則完全不含金額。
@@ -406,10 +406,10 @@ async function submit(share: boolean) {
             >
               <template v-if="pending === 'expense'">傳送中…</template>
               <template v-else-if="sharedExpenseCount">
-                傳 {{ sharedExpenseCount }} 筆花費{{ expenseLabel ? ` 給 ${expenseLabel}` : '' }}
+                傳 {{ sharedExpenseCount }} 筆花費出去
               </template>
               <template v-else>
-                先打勾要{{ expenseLabel ? `給 ${expenseLabel} 看` : '分享' }}的花費
+                先打勾要分享的花費
               </template>
             </button>
             <p v-else class="text-caption text-brand-brown-light">
