@@ -406,7 +406,7 @@ async function submit(share: boolean) {
             >
               <template v-if="pending === 'expense'">傳送中…</template>
               <template v-else-if="sharedExpenseCount">
-                傳 {{ sharedExpenseCount }} 筆花費出去
+                分享 {{ sharedExpenseCount }} 筆花費{{ isOneToOne ? '' : '到群組' }}
               </template>
               <template v-else>
                 先打勾要分享的花費
