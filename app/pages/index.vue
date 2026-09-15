@@ -408,7 +408,7 @@ async function submit(share: boolean) {
               :disabled="pending !== null || !sharedExpenseCount"
               class="h-12 w-full rounded-xl border-2 text-body font-bold transition active:scale-[0.99]"
               :class="sharedExpenseCount
-                ? 'border-brand-brown bg-brand-brown text-white active:bg-brand-brown-hover disabled:opacity-50'
+                ? 'border-brand-gold bg-brand-gold text-brand-brown disabled:opacity-50'
                 : 'border-brand-border bg-white text-brand-brown-light'"
               @click="shareExpenses"
             >
