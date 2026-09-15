@@ -103,9 +103,9 @@ export async function replaceExpenses(userId: string, spentDate: string, expense
 }
 
 /**
- * 記帳卡片上的稱呼。每個人自己填，沒填就是 null（卡片顯示中性的標題）。
+ * 記帳卡片的標題。整句由每個人自己填，沒填就是 null（卡片顯示中性的「花費」）。
  * 一定要是每人一份 —— 這個 app 不只一個人在用，寫死在程式裡的話，
- * 別人記帳時卡片上會出現不屬於他的名字。
+ * 別人記帳時卡片上會出現不屬於他的字。
  */
 export async function getExpenseLabel(userId: string): Promise<string | null> {
   const supabase = useSupabase()
@@ -114,7 +114,7 @@ export async function getExpenseLabel(userId: string): Promise<string | null> {
   return typeof label === 'string' && label.trim() ? label.trim() : null
 }
 
-/** 清洗稱呼。全空白視同沒填，回 null 把它清掉 */
+/** 清洗標題。全空白視同沒填，回 null 把它清掉 */
 export function sanitizeExpenseLabel(input: unknown): string | null {
   if (typeof input !== 'string') return null
   const trimmed = input.trim().slice(0, EXPENSE_LABEL_MAX)

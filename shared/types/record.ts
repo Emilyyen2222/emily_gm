@@ -63,8 +63,8 @@ export const NOTE_MAX_LENGTH = 200
 export const EXPENSE_ITEM_MAX = 20
 /** 一天最多記幾筆。這是防呆上限，不是想限制誰 */
 export const EXPENSE_MAX_ITEMS = 20
-/** 記帳卡片上稱呼的字數上限。卡片標題只有一行，太長會被截掉 */
-export const EXPENSE_LABEL_MAX = 8
+/** 記帳卡片標題的字數上限。使用者自己寫整句，卡片上只有一行，太長會被截掉 */
+export const EXPENSE_LABEL_MAX = 12
 /** 單筆金額上限，與資料庫的 check 一致 */
 export const EXPENSE_AMOUNT_MAX = 1000000
 

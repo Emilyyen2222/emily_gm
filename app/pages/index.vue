@@ -41,8 +41,8 @@ const expenseError = ref<string | null>(null)
 const sharedExpenseCount = computed(() => form.value.expenses.filter((e) => e.shared && e.item.trim()).length)
 
 /**
- * 記帳卡片上的稱呼。每個人自己填 —— 這個 app 不只一個人在用，
- * 寫死在程式裡的話，別人記帳時會在卡片上看到不屬於他的名字。
+ * 記帳卡片的標題。整句由每個人自己填 —— 這個 app 不只一個人在用，
+ * 寫死在程式裡的話，別人記帳時會在卡片上看到不屬於他的字。
  */
 const expenseLabel = useState<string | null>('expense-label', () => null)
 const labelEditing = ref(false)
@@ -372,14 +372,14 @@ async function submit(share: boolean) {
             <template v-if="!labelEditing">
               <span>卡片標題：<span class="font-bold text-brand-brown">{{ expenseCardTitle(expenseLabel) }}</span></span>
               <button type="button" class="font-medium text-brand-orange underline" @click="startEditLabel">
-                {{ expenseLabel ? '改稱呼' : '設定稱呼' }}
+                {{ expenseLabel ? '改標題' : '設定標題' }}
               </button>
             </template>
             <template v-else>
               <input
                 v-model="labelDraft"
                 type="text"
-                placeholder="例如他的暱稱"
+                placeholder="想寫什麼都可以"
                 :maxlength="EXPENSE_LABEL_MAX"
                 class="w-32 rounded-xl border-2 border-brand-border bg-white px-3 py-2 text-body text-brand-brown placeholder:text-brand-brown-light/60 focus:border-brand-orange focus:outline-none"
                 @keyup.enter="saveLabel"
@@ -391,7 +391,7 @@ async function submit(share: boolean) {
                 @click="saveLabel"
               >{{ labelSaving ? '存檔中…' : '存起來' }}</button>
               <button type="button" class="underline" @click="labelEditing = false">取消</button>
-              <span class="w-full">留空就只顯示「花費」</span>
+              <span class="w-full">會直接印在卡片最上面。留空就只顯示「花費」</span>
             </template>
           </div>
 

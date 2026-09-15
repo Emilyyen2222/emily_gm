@@ -23,13 +23,15 @@ const C = {
  * INVALID_MESSAGE 整則拒收。
  */
 /**
- * 卡片頂端那一行。
+ * 卡片頂端那一行，整句都由使用者自己寫。
  *
- * 稱呼是每個人自己在表單裡填的，沒填就用中性的「花費」——
- * 這個 app 不只一個人在用，標題裡不能出現不屬於這個人的名字。
+ * 不套任何句型（原本是「記給 OO」）——固定的字是我替使用者決定的語氣，
+ * 而這張卡片是他要傳給某個特定的人的，怎麼稱呼那件事只有他知道。
+ * 沒填就用中性的「花費」：這個 app 不只一個人在用，標題裡不能出現
+ * 不屬於這個人的字。
  */
 export function expenseCardTitle(label: string | null): string {
-  return label ? `記給 ${label}` : '花費'
+  return label || '花費'
 }
 
 export function buildExpenseFlexMessage(opts: {
