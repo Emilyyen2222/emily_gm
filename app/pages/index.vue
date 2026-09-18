@@ -377,14 +377,6 @@ async function submit(share: boolean) {
               placeholder="36.8"
             />
           </div>
-
-          <!-- 這段是給使用者的判讀說明，不是評價。刻意不寫成「異常／正常」，
-               也不對任何一天的數字下結論——體溫要看的是自己的基準線。 -->
-          <p class="mt-3 border-t border-brand-panel pt-3 text-caption leading-relaxed text-brand-brown-light">
-            重點不是單日的數字漂不漂亮，是你自己的基準線。記一到兩週就會有專屬的平均值：
-            早晨的波動在 0.2°C 上下算穩定；沒有感冒症狀卻連續幾天高出基準 0.4–0.5°C，
-            才是值得留意的訊號。兩個時段分開看，不要互相比較。
-          </p>
         </FormSection>
 
         <FormSection variant="aside" title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">

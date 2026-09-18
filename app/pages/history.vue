@@ -375,9 +375,6 @@ function shortDate(date: string) {
                 :max="37.3"
                 unit="°C"
               />
-              <p class="mt-3 text-caption text-brand-brown-light">
-                看的是與自己平常差多少：上下 0.2°C 的來回是正常的。
-              </p>
             </section>
 
             <section class="rounded-2xl border border-brand-border bg-white p-4">
@@ -393,9 +390,6 @@ function shortDate(date: string) {
                 :max="37.8"
                 unit="°C"
               />
-              <p class="mt-3 text-caption text-brand-brown-light">
-                這條線與早晨那條是兩組不同的數據，不要互相比較。
-              </p>
             </section>
           </template>
 
