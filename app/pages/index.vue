@@ -362,6 +362,31 @@ async function submit(share: boolean) {
           <span class="h-px flex-1 bg-brand-border" />
         </div>
 
+        <FormSection variant="aside" title="體溫" hint="想量再量，兩個都可以空著">
+          <div class="space-y-3">
+            <TempField
+              v-model="form.morningTemp"
+              label="早晨基礎體溫"
+              hint="剛醒、還沒下床時量最準，一般落在 36.1–36.8°C"
+            />
+            <div class="border-t border-brand-panel" />
+            <TempField
+              v-model="form.nightTemp"
+              label="睡前體溫"
+              hint="昨晚睡前量的，一般落在 36.5–37.3°C"
+              placeholder="36.8"
+            />
+          </div>
+
+          <!-- 這段是給使用者的判讀說明，不是評價。刻意不寫成「異常／正常」，
+               也不對任何一天的數字下結論——體溫要看的是自己的基準線。 -->
+          <p class="mt-3 border-t border-brand-panel pt-3 text-caption leading-relaxed text-brand-brown-light">
+            重點不是單日的數字漂不漂亮，是你自己的基準線。記一到兩週就會有專屬的平均值：
+            早晨的波動在 0.2°C 上下算穩定；沒有感冒症狀卻連續幾天高出基準 0.4–0.5°C，
+            才是值得留意的訊號。兩個時段分開看，不要互相比較。
+          </p>
+        </FormSection>
+
         <FormSection variant="aside" title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
           <NoteField v-model="form.privateNote" label="寫點什麼" placeholder="想寫給自己的話（選填）" />
         </FormSection>

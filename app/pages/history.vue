@@ -82,6 +82,21 @@ const avgMood = computed(() => {
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
 })
 
+/**
+ * 體溫的基準線＝這段期間自己的平均值。
+ *
+ * 不跟任何「標準值」比較，也不對單日下結論：體溫要看的是與自己平常
+ * 差多少，而那需要一到兩週的資料才算得出來。
+ */
+function avgTemp(pick: (r: DailyRecord) => number | null) {
+  const values = records.value.map(pick).filter((n): n is number => n !== null)
+  if (!values.length) return null
+  return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
+}
+const avgMorningTemp = computed(() => avgTemp((r) => r.morningTemp))
+const avgNightTemp = computed(() => avgTemp((r) => r.nightTemp))
+const hasTemp = computed(() => records.value.some((r) => r.morningTemp !== null || r.nightTemp !== null))
+
 const insights = computed(() => buildInsights(records.value))
 const needMore = computed(() => Math.max(0, INSIGHT_MIN_RECORDS - records.value.length))
 
@@ -102,6 +117,12 @@ function dailyLines(r: DailyRecord) {
     timeRange(r.bedTime, r.wakeTime, r.sleepHours),
   ].filter(Boolean).join('・')
   if (sleep) lines.push({ label: '睡眠', value: sleep })
+
+  const temps = [
+    r.morningTemp === null ? null : `早 ${r.morningTemp.toFixed(1)}°C`,
+    r.nightTemp === null ? null : `睡前 ${r.nightTemp.toFixed(1)}°C`,
+  ].filter(Boolean).join('・')
+  if (temps) lines.push({ label: '體溫', value: temps })
 
   if (r.bowelMovement !== null) {
     lines.push({ label: '💩', value: r.bowelMovement ? (r.bowelTime ?? '有') : '還沒' })
@@ -339,6 +360,44 @@ function shortDate(date: string) {
             </div>
             <TrendChart :points="chronological.map((r) => ({ date: r.recordDate, value: r.sleepScore }))" />
           </section>
+
+          <template v-if="hasTemp">
+            <section class="rounded-2xl border border-brand-border bg-white p-4">
+              <div class="mb-4 flex items-baseline justify-between">
+                <h2 class="text-h3 font-bold text-brand-brown">早晨基礎體溫</h2>
+                <span class="text-body text-brand-brown-light">
+                  基準線 {{ avgMorningTemp === null ? '－' : `${avgMorningTemp.toFixed(1)}°C` }}
+                </span>
+              </div>
+              <TrendChart
+                :points="chronological.map((r) => ({ date: r.recordDate, value: r.morningTemp }))"
+                :min="35.8"
+                :max="37.3"
+                unit="°C"
+              />
+              <p class="mt-3 text-caption text-brand-brown-light">
+                看的是與自己平常差多少：上下 0.2°C 的來回是正常的。
+              </p>
+            </section>
+
+            <section class="rounded-2xl border border-brand-border bg-white p-4">
+              <div class="mb-4 flex items-baseline justify-between">
+                <h2 class="text-h3 font-bold text-brand-brown">睡前體溫</h2>
+                <span class="text-body text-brand-brown-light">
+                  基準線 {{ avgNightTemp === null ? '－' : `${avgNightTemp.toFixed(1)}°C` }}
+                </span>
+              </div>
+              <TrendChart
+                :points="chronological.map((r) => ({ date: r.recordDate, value: r.nightTemp }))"
+                :min="36.0"
+                :max="37.8"
+                unit="°C"
+              />
+              <p class="mt-3 text-caption text-brand-brown-light">
+                這條線與早晨那條是兩組不同的數據，不要互相比較。
+              </p>
+            </section>
+          </template>
 
           <section class="rounded-2xl border border-brand-border bg-white p-4">
             <div class="mb-4 flex items-baseline justify-between">

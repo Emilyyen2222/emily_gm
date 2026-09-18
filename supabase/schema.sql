@@ -12,6 +12,10 @@ create table if not exists records (
   bed_time       time,
   wake_time      time,
   sleep_note     text,
+  -- 早晨剛醒、還沒下床的基礎體溫。看的是基礎狀態與發炎程度
+  morning_temp   numeric(3,1) check (morning_temp between 34 and 42),
+  -- 睡前體溫。受晚餐、活動量、洗澡與室溫影響，只適合看與入睡的關聯
+  night_temp     numeric(3,1) check (night_temp between 34 and 42),
   bowel_movement boolean,
   bowel_time     time,
   bowel_note     text,

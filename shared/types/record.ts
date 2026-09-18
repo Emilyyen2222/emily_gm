@@ -56,6 +56,13 @@ export const MOOD_SCORE: Record<string, number> = {
 
 
 
+/**
+ * 體溫的合理範圍。超出這個範圍的多半是打錯（少打小數點、單位打成華氏），
+ * 擋下來比存進去好——一筆 365 度會讓整張趨勢圖失去刻度。
+ */
+export const TEMP_MIN = 34
+export const TEMP_MAX = 42
+
 /** 備註欄位的長度上限 */
 export const NOTE_MAX_LENGTH = 200
 
@@ -93,6 +100,10 @@ export interface RecordInput {
   bedTime: string | null
   wakeTime: string | null
   sleepNote: string | null
+  /** 早晨剛醒、還沒下床量的基礎體溫。看基礎狀態與發炎程度 */
+  morningTemp: number | null
+  /** 睡前體溫。看體溫下降與當晚入睡的關聯 */
+  nightTemp: number | null
   bowelMovement: boolean | null
   bowelTime: string | null
   leaveHomeTime: string | null
@@ -150,6 +161,8 @@ export function emptyRecordInput(): RecordInput {
     bedTime: null,
     wakeTime: null,
     sleepNote: null,
+    morningTemp: null,
+    nightTemp: null,
     bowelMovement: null,
     bowelTime: null,
     leaveHomeTime: null,
@@ -227,4 +240,17 @@ export function expenseTotal(expenses: ExpenseItem[]): number {
 /** 金額顯示格式，例如 $1,250 */
 export function formatAmount(amount: number): string {
   return `$${Math.round(amount).toLocaleString('en-US')}`
+}
+
+/**
+ * 清洗體溫輸入。超出合理範圍一律視為沒填（多半是打錯），
+ * 小數點後只留一位——體溫計就只有一位，多的位數是假的精度。
+ */
+export function cleanTemp(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  if (!Number.isFinite(n)) return null
+  const rounded = Math.round(n * 10) / 10
+  if (rounded < TEMP_MIN || rounded > TEMP_MAX) return null
+  return rounded
 }

@@ -4,6 +4,7 @@ import {
   DEFAULT_HABITS,
   MOOD_OPTIONS,
   NOTE_MAX_LENGTH,
+  cleanTemp,
   computeSleepHours,
   type DailyRecord,
   type ExpenseItem,
@@ -25,6 +26,8 @@ export function rowToRecord(row: Record<string, any>, expenses: ExpenseItem[] = 
     bedTime: row.bed_time ? String(row.bed_time).slice(0, 5) : null,
     wakeTime: row.wake_time ? String(row.wake_time).slice(0, 5) : null,
     sleepNote: row.sleep_note ?? null,
+    morningTemp: row.morning_temp === null || row.morning_temp === undefined ? null : Number(row.morning_temp),
+    nightTemp: row.night_temp === null || row.night_temp === undefined ? null : Number(row.night_temp),
     bowelMovement: row.bowel_movement ?? null,
     bowelTime: row.bowel_time ? String(row.bowel_time).slice(0, 5) : null,
     // 已停用的欄位，只讀不寫，讓舊紀錄在「每日」分頁仍看得到
@@ -79,6 +82,8 @@ export function sanitizeRecordInput(input: Partial<RecordInput>, habits: string[
     bedTime,
     wakeTime,
     sleepNote: cleanNote(input.sleepNote),
+    morningTemp: cleanTemp(input.morningTemp),
+    nightTemp: cleanTemp(input.nightTemp),
     bowelMovement: typeof input.bowelMovement === 'boolean' ? input.bowelMovement : null,
     // 沒排便就不該有排便時間
     bowelTime: input.bowelMovement === true && isTimeString(input.bowelTime) ? input.bowelTime : null,

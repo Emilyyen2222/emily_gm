@@ -32,6 +32,9 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
         bed_time: input.bedTime,
         wake_time: input.wakeTime,
         sleep_note: input.sleepNote,
+        // 體溫刻意不進 Flex Message，只存起來給本人看
+        morning_temp: input.morningTemp,
+        night_temp: input.nightTemp,
         bowel_movement: input.bowelMovement,
         bowel_time: input.bowelTime,
         leave_home_time: input.leaveHomeTime,

@@ -2,13 +2,28 @@
 /**
  * 折線趨勢圖。
  *
- * Y 軸固定 0–100 而不是依資料自動縮放：兩個指標都是百分比，固定刻度才能
- * 互相比較，也不會因為某幾天差異很小就把波動放大成看起來很劇烈。
+ * Y 軸用固定刻度而不是依資料自動縮放：固定刻度才能互相比較，也不會因為
+ * 某幾天差異很小就把波動放大成看起來很劇烈。百分比用預設的 0–100，
+ * 體溫這種落在窄區間的資料則自己傳 min/max 進來。
  */
-const props = defineProps<{
-  points: { date: string; value: number | null }[]
-  label?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    points: { date: string; value: number | null }[]
+    label?: string
+    /** Y 軸下界與上界 */
+    min?: number
+    max?: number
+    /** 圓點提示文字的單位 */
+    unit?: string
+  }>(),
+  { min: 0, max: 100, unit: '%' },
+)
+
+/** 把實際數值換算成 0–100 的圖面座標 */
+function scale(value: number): number {
+  const ratio = (value - props.min) / (props.max - props.min)
+  return Math.min(100, Math.max(0, ratio * 100))
+}
 
 const id = useId()
 
@@ -18,7 +33,7 @@ const plotted = computed(() =>
     date: p.date,
     value: p.value,
     x: props.points.length === 1 ? 50 : (i / (props.points.length - 1)) * 100,
-    y: p.value === null ? null : 100 - p.value,
+    y: p.value === null ? null : 100 - scale(p.value),
   })),
 )
 
@@ -79,7 +94,7 @@ function short(date: string) {
 <template>
   <div>
     <div class="relative h-32">
-      <!-- 50% 的參考線，讓人一眼看出高於還是低於一半 -->
+      <!-- 中間的參考線，讓人一眼看出高於還是低於區間中點 -->
       <div class="absolute inset-x-0 top-1/2 border-t border-dashed border-brand-border" />
 
       <svg class="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -108,7 +123,7 @@ function short(date: string) {
         :key="d.date"
         class="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-orange ring-2 ring-white"
         :style="{ left: `${d.x}%`, top: `${d.y}%` }"
-        :title="`${d.date}：${d.value}%`"
+        :title="`${d.date}：${d.value}${unit}`"
       />
     </div>
 
