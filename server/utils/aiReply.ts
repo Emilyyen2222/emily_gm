@@ -86,6 +86,6 @@ async function answer(
   if (!opts.inGroup) await showLoading(userId)
 
   const context = withRecords ? await buildRecordContext(userId, today) : null
-  const result = await askClaude(question, context, today)
+  const result = await askClaude(question, context, today, opts.inGroup)
   return textMessage(result.ok ? result.text : AI_TEXT.unavailable)
 }

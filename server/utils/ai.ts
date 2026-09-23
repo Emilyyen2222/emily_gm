@@ -37,7 +37,13 @@ const SYSTEM_PROMPT = `你是一個 LINE 官方帳號裡的 AI 助理。這個�
 
 關於使用者的紀錄：
 - 如果訊息裡附上了「使用者的紀錄」，只能根據裡面的內容回答，沒有記錄的就說沒有記錄，不要推測或編造。
-- 如果沒有附上紀錄，而對方問的是自己的狀況（例如「我這週睡得怎樣」），就說明你在這裡看不到他的紀錄，不要編造。並提醒他：在跟這個官方帳號的一對一聊天裡，打「本週」可以看這週的摘要；打「AI 設定」並選擇同意，之後問 AI 時就會參考他的紀錄。用自己的話說，不用逐字照抄。`
+- 「這週」「本週」指紀錄裡【這週】那一段，不是從星期一算起。問這週時只看【這週】，【前一週】只在對方問到比較或更早的日子時才用。
+- 描述紀錄時只說看到了什麼（數字、變化、哪幾天比較不一樣），不要推論原因或影響（例如「這可能影響你的睡眠品質」），也不用下整體評語（例如「不太穩定」）。對方主動問原因或建議時才談。
+- 紀錄裡已經算好的數字（例如記錄天數）直接照用，不要自己重新數。
+- 如果沒有附上紀錄，而對方問的是自己的狀況（例如「我這週睡得怎樣」），就說明你看不到他的紀錄，不要編造。並依照訊息開頭寫的場合提醒他：
+  ・在一對一聊天：打「本週」可以看這週的摘要；打「AI 設定」並選擇同意，之後問你時就會參考他的紀錄。
+  ・在群組：你在群組裡不會讀任何人的紀錄；想看自己的狀況，可以私訊這個官方帳號打「本週」，或打「AI 設定」選擇同意後再問。
+  用自己的話說，不用逐字照抄。`
 
 export type AskResult = { ok: true; text: string } | { ok: false }
 
@@ -48,11 +54,21 @@ export type AskResult = { ok: true; text: string } | { ok: false }
  * 任何錯誤（沒設 key、額度用完、網路問題）都回 { ok: false }，
  * 由呼叫端回一句說明，而不是讓 bot 沒有反應。
  */
-export async function askClaude(question: string, recordContext: string | null, today: string): Promise<AskResult> {
+export async function askClaude(
+  question: string,
+  recordContext: string | null,
+  today: string,
+  inGroup: boolean,
+): Promise<AskResult> {
   const client = useAnthropic()
   if (!client) return { ok: false }
 
-  const parts = [`今天是 ${today}（台北時間）。`]
+  // 日期範圍由程式算好再告訴 AI：讓它自己數「最近 7 天」會數錯
+  const parts = [
+    `今天是 ${today}（台北時間）。「這週」指 ${addDays(today, -6)} 到 ${today} 這 7 天。`,
+    // 讓 AI 知道場合，提醒時才講得對：一對一不必叫人「去一對一聊天」
+    `場合：${inGroup ? '群組' : '一對一聊天'}`,
+  ]
   if (recordContext) parts.push(`使用者的紀錄：\n${recordContext}`)
   parts.push(`使用者的訊息：\n${question}`)
 
@@ -125,8 +141,20 @@ export async function buildRecordContext(userId: string, today: string): Promise
     return lines.join('\n')
   }
 
-  lines.push(`最近 ${CONTEXT_DAYS} 天的紀錄（沒出現的日期代表那天沒記錄）：`)
-  for (const r of rows) lines.push(describeDay(r))
+  // 能算的數字由程式算好：讓 Haiku 自己數天數會數錯
+  const weekFrom = addDays(today, -6)
+  // 分成兩段給：混在同一份清單裡，Haiku 會把上週的日子也算進「這週」
+  const thisWeek = rows.filter((r) => r.record_date >= weekFrom)
+  const lastWeek = rows.filter((r) => r.record_date < weekFrom)
+
+  lines.push(`【這週】${weekFrom} 到 ${today}，有記錄 ${thisWeek.length} / 7 天（沒出現的日期代表那天沒記錄）：`)
+  for (const r of thisWeek) lines.push(describeDay(r))
+  if (!thisWeek.length) lines.push('（這週沒有紀錄）')
+
+  lines.push('')
+  lines.push(`【前一週】${addDays(today, -(CONTEXT_DAYS - 1))} 到 ${addDays(weekFrom, -1)}，有記錄 ${lastWeek.length} / 7 天：`)
+  for (const r of lastWeek) lines.push(describeDay(r))
+  if (!lastWeek.length) lines.push('（前一週沒有紀錄）')
   return lines.join('\n')
 }
 
