@@ -28,6 +28,25 @@ export async function replyMessage(replyToken: string, messages: unknown[]): Pro
   })
 }
 
+/**
+ * 在一對一聊天室顯示「輸入中」動畫，等 AI 回答時使用者才知道 bot 有在處理。
+ * LINE 只支援一對一，群組不能用。顯示失敗不影響回答，所以錯誤一律吞掉。
+ * 送出回覆時動畫會自動消失。
+ */
+export async function showLoading(userId: string): Promise<void> {
+  const config = useRuntimeConfig()
+  if (!config.lineChannelAccessToken) return
+  try {
+    await $fetch('https://api.line.me/v2/bot/chat/loading/start', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.lineChannelAccessToken}` },
+      body: { chatId: userId, loadingSeconds: 20 },
+    })
+  } catch {
+    // 動畫只是錦上添花
+  }
+}
+
 /** 組出開啟本 LIFF 應用的連結 */
 export function liffUrl(): string {
   const config = useRuntimeConfig()

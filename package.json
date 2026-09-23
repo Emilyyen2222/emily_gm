@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@line/liff": "^2.31.0",
     "@supabase/supabase-js": "^2.116.0",
     "nuxt": "^4.5.2",

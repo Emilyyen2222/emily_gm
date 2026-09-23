@@ -66,6 +66,25 @@ export default defineEventHandler(async (event) => {
       continue
     }
 
+    // AI 同意卡片的按鈕。卡片只會出現在一對一，也只接受一對一來的 postback：
+    // 群組裡沒有「本人」的概念，不該在那裡改任何人的設定
+    if (ev.type === 'postback') {
+      const data = String(ev.postback?.data ?? '')
+      const choice =
+        data === AI_CONSENT_POSTBACK.granted ? 'granted' : data === AI_CONSENT_POSTBACK.declined ? 'declined' : null
+      if (!choice || source.type !== 'user' || !source.userId || !ev.replyToken) {
+        handled.push('postback: 略過')
+        continue
+      }
+      try {
+        await replyMessage(ev.replyToken, [await handleConsentPostback(source.userId, choice)])
+        handled.push(`postback: AI 同意設為 ${choice}`)
+      } catch (err: any) {
+        handled.push(`postback: 回覆失敗 ${describe(err)}`)
+      }
+      continue
+    }
+
     // 文字訊息：一對一一律回應；群組只在被 @ 到時回應。
     // 不接受群組裡的裸關鍵字——「今天」「本週」在日常對話太常見，
     // 誤觸會把當事人的紀錄連同備註貼進群組。

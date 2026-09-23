@@ -75,8 +75,39 @@ create table if not exists users (
   -- 記帳卡片上的稱呼（例如男友的暱稱）。沒填就顯示中性的「花費」
   expense_label     text,
   first_seen_at     timestamptz default now(),
-  consent_shared_at timestamptz
+  consent_shared_at timestamptz,
+  -- AI 問答：null = 還沒問過，要先給同意卡片
+  ai_consent          text check (ai_consent in ('granted', 'declined')),
+  ai_consent_at       timestamptz,
+  ai_pending_question text
 );
+
+-- AI 問答每人每天的使用次數
+create table if not exists ai_usage (
+  user_id    text not null,
+  usage_date date not null,
+  count      smallint not null default 0,
+  primary key (user_id, usage_date)
+);
+
+-- 還沒到上限就 +1（原子操作），見 migrations/016_ai.sql
+create or replace function ai_usage_take(p_user_id text, p_date date, p_limit smallint)
+returns boolean
+language plpgsql
+as $$
+declare
+  taken smallint;
+begin
+  insert into ai_usage (user_id, usage_date, count)
+  values (p_user_id, p_date, 1)
+  on conflict (user_id, usage_date)
+    do update set count = ai_usage.count + 1
+    where ai_usage.count < p_limit
+  returning count into taken;
+  return taken is not null;
+end;
+$$;
+revoke execute on function ai_usage_take(text, date, smallint) from public, anon, authenticated;
 
 -- 全部啟用 RLS 且不建立任何 policy：
 -- 只有帶 service_role key 的 server routes 進得來，瀏覽器完全無法直連。
@@ -84,3 +115,4 @@ alter table records enable row level security;
 alter table chats   enable row level security;
 alter table users   enable row level security;
 alter table expenses enable row level security;
+alter table ai_usage enable row level security;

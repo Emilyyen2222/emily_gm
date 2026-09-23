@@ -23,6 +23,7 @@ export default defineNuxtConfig({
     supabaseUrl: '',
     supabaseServiceRoleKey: '',
     cronSecret: '',
+    anthropicApiKey: '',
     public: {
       // 只有 public 這層會被打包進前端
       liffId: '',

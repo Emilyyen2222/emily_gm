@@ -8,6 +8,8 @@ import { rowToRecord } from './records'
  * 健康紀錄連同備註貼進群組，那是非預期的隱私外洩，而且觸發門檻低到一定會發生。
  *
  * 一對一沒有這個風險（只有本人看得到），所以任何訊息都會回應。
+ *
+ * 固定指令以外的訊息交給 AI 回答（見 aiReply.ts）。
  */
 export async function buildTextReply(
   rawText: string,
@@ -55,5 +57,15 @@ export async function buildTextReply(
     return weekCard({ from: from.slice(5).replace('-', '/'), to: today.slice(5).replace('-', '/'), ...summary, url })
   }
 
-  return helpCard(url, inGroup)
+  if (/^AI\s*設定$/i.test(text)) {
+    if (inGroup) return textMessage(AI_TEXT.settingsInGroup)
+    if (!userId) return helpCard(url, inGroup)
+    return aiSettings(userId)
+  }
+
+  // 只 @ 了 bot 沒打字，或拿不到 userId（無法計次）時，給說明卡片
+  if (!text || !userId) return helpCard(url, inGroup)
+
+  // 其他看不懂的訊息交給 AI
+  return aiReply(text, userId, inGroup)
 }

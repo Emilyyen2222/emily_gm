@@ -77,7 +77,7 @@ function row(label: string, value: string) {
 export function helpCard(url: string, inGroup = false) {
   return {
     type: 'flex',
-    altText: '可以跟我說：記錄 / 今天 / 本週',
+    altText: '可以跟我說：記錄 / 今天 / 本週，其他問題直接問我',
     contents: bubble(
       '可以這樣用',
       [
@@ -90,6 +90,7 @@ export function helpCard(url: string, inGroup = false) {
             row('記錄', '開始今天的記錄'),
             row('今天', '看今天填了什麼'),
             row('本週', '看這週的摘要'),
+            row('其他問題', '直接問我'),
           ],
         },
         {
@@ -176,3 +177,83 @@ export function summarise(records: DailyRecord[]) {
     days: records.length,
   }
 }
+
+/** 純文字回覆。LINE 單則文字上限 5000 字 */
+export function textMessage(text: string) {
+  return { type: 'text', text: text.slice(0, 5000) }
+}
+
+/** 同意卡片按鈕送出的 postback data */
+export const AI_CONSENT_POSTBACK = {
+  granted: 'ai_consent=granted',
+  declined: 'ai_consent=declined',
+} as const
+
+/**
+ * AI 同意卡片，只出現在一對一聊天。
+ *
+ * 兩個選項都能繼續用 AI，差別只在讀不讀紀錄 —— 不同意也能用，
+ * 才不會變成「不按同意就不給用」的強迫。
+ * 按鈕用 postback：按下後聊天室會以使用者名義顯示按鈕上的文字（displayText），
+ * 看得出自己選了什麼。
+ */
+export function aiConsentCard() {
+  const postback = (label: string, data: string) => ({ type: 'postback', label, data, displayText: label })
+  return {
+    type: 'flex',
+    altText: '要讓我參考你的紀錄嗎？',
+    contents: bubble(
+      'AI 小幫手',
+      [
+        {
+          type: 'text',
+          text: '要讓我參考你的紀錄嗎？',
+          size: 'md',
+          weight: 'bold',
+          color: C.brown,
+          margin: 'md',
+          wrap: true,
+        },
+        {
+          type: 'text',
+          text: '同意的話，我回答時會參考你最近 14 天的睡眠、心情、體溫、自我照顧等紀錄，例如「我這週睡得怎樣」這種問題就能回答。',
+          size: 'sm',
+          color: C.brown,
+          margin: 'md',
+          wrap: true,
+        },
+        {
+          type: 'text',
+          text: '這些資料會交給 AI 服務（Anthropic 的 Claude）處理。日記、備註和花費不會送出。之後打「AI 設定」可以改。',
+          size: 'xs',
+          color: C.brownLight,
+          margin: 'lg',
+          wrap: true,
+        },
+      ],
+      {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          { type: 'button', style: 'primary', color: C.orange, height: 'sm', action: postback('同意', AI_CONSENT_POSTBACK.granted) },
+          {
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            action: postback('不用，只回答一般問題', AI_CONSENT_POSTBACK.declined),
+          },
+        ],
+      },
+    ),
+  }
+}
+
+/** AI 問答相關的固定回覆 */
+export const AI_TEXT = {
+  consentGranted: '好，之後回答時會參考你的紀錄。',
+  consentDeclined: '好，之後只回答一般問題，不會讀你的紀錄。',
+  limitReached: `今天已經問了 ${AI_DAILY_LIMIT} 題，明天再繼續吧。`,
+  unavailable: 'AI 暫時沒辦法回答，晚點再試試看。',
+  settingsInGroup: 'AI 設定要在跟我的一對一聊天裡調整。',
+} as const
