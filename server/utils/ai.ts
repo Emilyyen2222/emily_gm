@@ -11,7 +11,7 @@ const CONTEXT_DAYS = 14
 
 let cached: Anthropic | null = null
 
-function useAnthropic(): Anthropic | null {
+export function useAnthropic(): Anthropic | null {
   if (cached) return cached
   const config = useRuntimeConfig()
   if (!config.anthropicApiKey) return null
@@ -125,7 +125,7 @@ export async function buildRecordContext(userId: string, today: string): Promise
     supabase
       .from('records')
       .select(
-        'record_date, sleep_score, sleep_hours, bed_time, wake_time, morning_temp, night_temp, mood, bowel_movement, bowel_time, leave_home_time, leave_office_time, allergy, liver_care, liver_score, liver_total',
+        'record_date, sleep_score, sleep_hours, bed_time, wake_time, morning_temp, night_temp, mood, bowel_movement, bowel_time, bowel_times, leave_home_time, leave_office_time, allergy, liver_care, liver_score, liver_total',
       )
       .eq('user_id', userId)
       .gte('record_date', addDays(today, -(CONTEXT_DAYS - 1)))
@@ -172,7 +172,8 @@ function describeDay(r: Record<string, any>): string {
   if (r.night_temp !== null) parts.push(`睡前體溫 ${Number(r.night_temp)}°C`)
   if (r.mood) parts.push(`心情 ${r.mood}`)
   if (r.bowel_movement !== null) {
-    parts.push(r.bowel_movement ? `有排便${r.bowel_time ? `（${hhmm(r.bowel_time)}）` : ''}` : '沒有排便')
+    const times: string[] = r.bowel_times ?? (r.bowel_time ? [hhmm(r.bowel_time)!] : [])
+    parts.push(r.bowel_movement ? `有排便${times.length ? ` ${times.length} 次（${times.join('、')}）` : ''}` : '沒有排便')
   }
   if (r.leave_home_time) parts.push(`出門 ${hhmm(r.leave_home_time)}`)
   if (r.leave_office_time) parts.push(`下班 ${hhmm(r.leave_office_time)}`)

@@ -66,6 +66,21 @@ export default defineEventHandler(async (event) => {
       continue
     }
 
+    // 今日單字卡片上「看今天的新聞」按鈕。新聞是公開內容，群組與一對一都回
+    if (ev.type === 'postback' && ev.replyToken) {
+      const data = String(ev.postback?.data ?? '')
+      const kind = data === NEWS_POSTBACK.ai ? 'ai' : data === NEWS_POSTBACK.health ? 'health' : null
+      if (kind) {
+        try {
+          await replyMessage(ev.replyToken, [await newsReply(kind)])
+          handled.push(`postback: 回覆 ${kind} 新聞`)
+        } catch (err: any) {
+          handled.push(`postback: 回覆失敗 ${describe(err)}`)
+        }
+        continue
+      }
+    }
+
     // AI 同意卡片的按鈕。卡片只會出現在一對一，也只接受一對一來的 postback：
     // 群組裡沒有「本人」的概念，不該在那裡改任何人的設定
     if (ev.type === 'postback') {

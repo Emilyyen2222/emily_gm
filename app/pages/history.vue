@@ -3,6 +3,7 @@ import { MOOD_SCORE, careRate, formatAmount, type DailyRecord, type RecordsRespo
 import type { MonthlyExpensesResponse } from '~~/server/api/expenses/me.get'
 import { INSIGHT_MIN_RECORDS, buildInsights } from '#shared/utils/insights'
 import { buildWeeklyShareCard, lastWeekRange } from '#shared/utils/weeklyCard'
+import { bowelText } from '#shared/utils/flexMessage'
 
 const { ready, initError, displayName, canShareToChat, isOneToOne, canPickTarget, init, getIdToken, sendToChat, shareToPicked } = useLiff()
 
@@ -125,7 +126,7 @@ function dailyLines(r: DailyRecord) {
   if (temps) lines.push({ label: '體溫', value: temps })
 
   if (r.bowelMovement !== null) {
-    lines.push({ label: '💩', value: r.bowelMovement ? (r.bowelTime ?? '有') : '還沒' })
+    lines.push({ label: '💩', value: r.bowelMovement ? bowelText(r.bowelTimes) : '還沒' })
   }
   if (r.allergy.length) lines.push({ label: '過敏', value: r.allergy.join('、') })
 

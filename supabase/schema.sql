@@ -17,7 +17,8 @@ create table if not exists records (
   -- 睡前體溫。受晚餐、活動量、洗澡與室溫影響，只適合看與入睡的關聯
   night_temp     numeric(3,1) check (night_temp between 34 and 42),
   bowel_movement boolean,
-  bowel_time     time,
+  bowel_time     time,          -- 已由 bowel_times 取代，仍同步寫第一次的時間
+  bowel_times    text[],        -- 每次排便的時間 HH:MM，記了幾個就是幾次
   bowel_note     text,
   leave_home_time time,                      -- 早上出門時間
   leave_office_time time,                    -- 離開公司時間
@@ -109,6 +110,15 @@ end;
 $$;
 revoke execute on function ai_usage_take(text, date, smallint) from public, anon, authenticated;
 
+-- 每天 09:00 產生的新聞（公開內容，不含任何人的資料）
+create table if not exists news_digests (
+  kind        text not null check (kind in ('health', 'ai', 'quote')),
+  digest_date date not null,
+  content     jsonb not null,
+  created_at  timestamptz default now(),
+  primary key (kind, digest_date)
+);
+
 -- 全部啟用 RLS 且不建立任何 policy：
 -- 只有帶 service_role key 的 server routes 進得來，瀏覽器完全無法直連。
 alter table records enable row level security;
@@ -116,3 +126,4 @@ alter table chats   enable row level security;
 alter table users   enable row level security;
 alter table expenses enable row level security;
 alter table ai_usage enable row level security;
+alter table news_digests enable row level security;

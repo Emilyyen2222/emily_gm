@@ -63,6 +63,9 @@ export const MOOD_SCORE: Record<string, number> = {
 export const TEMP_MIN = 34
 export const TEMP_MAX = 42
 
+/** 排便一天最多記幾次。這是防呆上限，不是想限制誰 */
+export const BOWEL_MAX_TIMES = 10
+
 /** 備註欄位的長度上限 */
 export const NOTE_MAX_LENGTH = 200
 
@@ -105,7 +108,11 @@ export interface RecordInput {
   /** 睡前體溫。看體溫下降與當晚入睡的關聯 */
   nightTemp: number | null
   bowelMovement: boolean | null
-  bowelTime: string | null
+  /**
+   * 每次排便的時間（HH:MM），記了幾個就是幾次。
+   * 表單上還沒選好的那一格是 null，送出時後端會濾掉
+   */
+  bowelTimes: (string | null)[]
   leaveHomeTime: string | null
   leaveOfficeTime: string | null
   allergy: string[]
@@ -164,7 +171,7 @@ export function emptyRecordInput(): RecordInput {
     morningTemp: null,
     nightTemp: null,
     bowelMovement: null,
-    bowelTime: null,
+    bowelTimes: [],
     leaveHomeTime: null,
     leaveOfficeTime: null,
     allergy: [],

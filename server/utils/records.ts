@@ -1,6 +1,7 @@
 import {
   ALLERGY_NONE,
   ALLERGY_OPTIONS,
+  BOWEL_MAX_TIMES,
   DEFAULT_HABITS,
   MOOD_OPTIONS,
   NOTE_MAX_LENGTH,
@@ -29,7 +30,8 @@ export function rowToRecord(row: Record<string, any>, expenses: ExpenseItem[] = 
     morningTemp: row.morning_temp === null || row.morning_temp === undefined ? null : Number(row.morning_temp),
     nightTemp: row.night_temp === null || row.night_temp === undefined ? null : Number(row.night_temp),
     bowelMovement: row.bowel_movement ?? null,
-    bowelTime: row.bowel_time ? String(row.bowel_time).slice(0, 5) : null,
+    // 018 之前的資料只有 bowel_time（已由 migration 搬進 bowel_times），這裡再保險一次
+    bowelTimes: row.bowel_times ?? (row.bowel_time ? [String(row.bowel_time).slice(0, 5)] : []),
     // 已停用的欄位，只讀不寫，讓舊紀錄在「每日」分頁仍看得到
     bowelNote: row.bowel_note ?? null,
     allergyNote: row.allergy_note ?? null,
@@ -85,8 +87,11 @@ export function sanitizeRecordInput(input: Partial<RecordInput>, habits: string[
     morningTemp: cleanTemp(input.morningTemp),
     nightTemp: cleanTemp(input.nightTemp),
     bowelMovement: typeof input.bowelMovement === 'boolean' ? input.bowelMovement : null,
-    // 沒排便就不該有排便時間
-    bowelTime: input.bowelMovement === true && isTimeString(input.bowelTime) ? input.bowelTime : null,
+    // 沒排便就不該有排便時間；還沒選好的空格濾掉
+    bowelTimes:
+      input.bowelMovement === true && Array.isArray(input.bowelTimes)
+        ? input.bowelTimes.filter(isTimeString).slice(0, BOWEL_MAX_TIMES)
+        : [],
     leaveHomeTime: isTimeString(input.leaveHomeTime) ? input.leaveHomeTime : null,
     leaveOfficeTime: isTimeString(input.leaveOfficeTime) ? input.leaveOfficeTime : null,
     // 選了「今天沒有」就不該同時有其他症狀

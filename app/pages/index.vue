@@ -2,6 +2,7 @@
 import {
   ALLERGY_NONE,
   ALLERGY_OPTIONS,
+  BOWEL_MAX_TIMES,
   MOOD_OPTIONS,
   computeSleepHours,
   countFilled,
@@ -86,6 +87,16 @@ const progress = computed(() => countFilled(form.value))
 /** 睡眠時數由入睡與起床時間即時算出，讓使用者填完馬上看到 */
 const sleepHours = computed(() => computeSleepHours(form.value.bedTime, form.value.wakeTime))
 
+/**
+ * 選「有」時直接給第一格時間，不用再多按一次「再記一次」；
+ * 選「沒有」就清掉所有時間，沒排便不該有排便時間。
+ */
+function setBowel(value: boolean) {
+  form.value.bowelMovement = value
+  if (!value) form.value.bowelTimes = []
+  else if (!form.value.bowelTimes.length) form.value.bowelTimes = [null]
+}
+
 /** 出門到離開公司之間的時數。跨夜（例如 09:00 出門、隔日 01:00 離開）也算得出來 */
 const workHours = computed(() => {
   const { leaveHomeTime: from, leaveOfficeTime: to } = form.value
@@ -148,6 +159,7 @@ onMounted(async () => {
       const { shared, sourceChatId, ...rest } = today
       Object.assign(form.value, rest)
       form.value.allergy = [...today.allergy]
+      form.value.bowelTimes = [...today.bowelTimes]
       // 複製一份，避免表單直接改到伺服器回傳物件裡的同一個陣列
       form.value.expenses = today.expenses.map((e) => ({ ...e }))
       // 過濾掉已經不在清單裡的項目。使用者換過項目之後，舊紀錄裡的項目
@@ -317,14 +329,34 @@ async function submit(share: boolean) {
               :class="form.bowelMovement === opt.value
                 ? 'border-brand-orange bg-brand-orange text-white'
                 : 'border-brand-border bg-white text-brand-brown-light'"
-              @click="form.bowelMovement = opt.value; if (!opt.value) form.bowelTime = null"
+              @click="setBowel(opt.value)"
             >
               {{ opt.label }}
             </button>
           </div>
 
-          <div v-if="form.bowelMovement === true" class="mt-3">
-            <TimeField v-model="form.bowelTime" label="時間" />
+          <div v-if="form.bowelMovement === true" class="mt-3 space-y-3">
+            <div v-for="(_, i) in form.bowelTimes" :key="i" class="flex items-center gap-2">
+              <div class="min-w-0 flex-1">
+                <TimeField v-model="form.bowelTimes[i]" :label="`第 ${i + 1} 次`" />
+              </div>
+              <button
+                type="button"
+                class="h-10 w-10 shrink-0 rounded-full text-body-lg text-brand-brown-light"
+                :aria-label="`刪掉第 ${i + 1} 次`"
+                @click="form.bowelTimes.splice(i, 1)"
+              >
+                ✕
+              </button>
+            </div>
+            <button
+              v-if="form.bowelTimes.length < BOWEL_MAX_TIMES"
+              type="button"
+              class="h-11 w-full rounded-xl border-2 border-dashed border-brand-border text-body text-brand-brown-light"
+              @click="form.bowelTimes.push(null)"
+            >
+              ＋ 再記一次
+            </button>
           </div>
 
         </FormSection>

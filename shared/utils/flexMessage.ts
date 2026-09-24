@@ -48,7 +48,7 @@ export function buildDailyFlexMessage(record: DailyRecord) {
   if (record.bowelMovement !== null) {
     // 標籤直接用 💩，值才是內容 —— 標籤和值都放 emoji 會變成兩個符號並排，
     // 反而看不懂哪個是哪個。「還沒」比「沒有」好，今天還沒過完。
-    rows.push(row('💩', record.bowelMovement ? (record.bowelTime ?? '有') : '還沒'))
+    rows.push(row('💩', record.bowelMovement ? bowelText(record.bowelTimes) : '還沒'))
   }
   if (record.leaveHomeTime && record.leaveOfficeTime) {
     rows.push(row('上班', `${record.leaveHomeTime} → ${record.leaveOfficeTime}`))
@@ -161,4 +161,10 @@ function encouragement(percent: number): string {
   if (percent >= 60) return '今天狀態不錯，繼續當一顆很棒的四季豆😇'
   if (percent > 0) return '有做到就已經是一顆好的四季豆☺️'
   return '今天有記錄下來，就是一顆很棒的四季豆了😌'
+}
+
+/** 多次排便的時間用頓號串起來；按了「有」但沒填時間就顯示「有」 */
+export function bowelText(times: (string | null)[]): string {
+  const filled = times.filter((t): t is string => Boolean(t))
+  return filled.length ? filled.join('、') : '有'
 }

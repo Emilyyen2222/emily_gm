@@ -77,7 +77,7 @@ function row(label: string, value: string) {
 export function helpCard(url: string, inGroup = false) {
   return {
     type: 'flex',
-    altText: '可以跟我說：記錄 / 今天 / 本週，其他問題直接問我',
+    altText: '可以跟我說：記錄 / 今天 / 本週 / 新聞 / AI新聞，其他問題直接問我',
     contents: bubble(
       '可以這樣用',
       [
@@ -90,6 +90,8 @@ export function helpCard(url: string, inGroup = false) {
             row('記錄', '開始今天的記錄'),
             row('今天', '看今天填了什麼'),
             row('本週', '看這週的摘要'),
+            row('新聞', '今天的健康新知'),
+            row('AI新聞', '今天的 AI 科技新聞'),
             row('其他問題', '直接問我'),
           ],
         },
@@ -257,3 +259,6 @@ export const AI_TEXT = {
   unavailable: 'AI 暫時沒辦法回答，晚點再試試看。',
   settingsInGroup: 'AI 設定要在跟我的一對一聊天裡調整。',
 } as const
+
+/** 資料庫裡完全沒有新聞時（剛上線、09:00 的排程還沒跑過） */
+export const NEWS_EMPTY = '新聞還沒準備好，晚點再試試看。'

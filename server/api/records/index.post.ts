@@ -36,7 +36,9 @@ export default defineEventHandler(async (event): Promise<SubmitRecordResponse> =
         morning_temp: input.morningTemp,
         night_temp: input.nightTemp,
         bowel_movement: input.bowelMovement,
-        bowel_time: input.bowelTime,
+        bowel_times: input.bowelTimes,
+        // 舊欄位同步寫第一次的時間，萬一要退回舊版程式也讀得到
+        bowel_time: input.bowelTimes[0] ?? null,
         leave_home_time: input.leaveHomeTime,
         leave_office_time: input.leaveOfficeTime,
         allergy: input.allergy,

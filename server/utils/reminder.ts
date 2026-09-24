@@ -1,14 +1,10 @@
 import type { H3Event } from 'h3'
 
 /**
- * 推播提醒的共用流程：認證、執行紀錄、讀取推播目標、逐一發送。
- * 早晚兩個提醒只有卡片內容不同，其餘完全一樣，抽出來避免兩邊各改一次。
+ * 排程共用的開頭：先記一筆執行紀錄，再驗證是不是 Vercel Cron（或帶了密鑰的手動觸發）。
+ * 認證失敗會記下原因並丟出 401。回傳的 finish 用來在結束時補上結果。
  */
-export async function runReminder(
-  event: H3Event,
-  job: string,
-  buildMessages: (url: string, chat: { chatId: string; chatType: string }) => Promise<unknown[]>,
-) {
+export async function beginCronRun(event: H3Event, job: string) {
   const config = useRuntimeConfig()
   const supabase = useSupabase()
 
@@ -43,6 +39,21 @@ export async function runReminder(
     await finish({ status: 'unauthorized', note: `認證失敗（來源：${triggeredBy}，有帶 header：${Boolean(auth)}）` })
     throw createError({ statusCode: 401, statusMessage: '未授權' })
   }
+
+  return { finish }
+}
+
+/**
+ * 推播提醒的共用流程：認證、執行紀錄、讀取推播目標、逐一發送。
+ * 早晚兩個提醒只有卡片內容不同，其餘完全一樣，抽出來避免兩邊各改一次。
+ */
+export async function runReminder(
+  event: H3Event,
+  job: string,
+  buildMessages: (url: string, chat: { chatId: string; chatType: string }) => Promise<unknown[]>,
+) {
+  const supabase = useSupabase()
+  const { finish } = await beginCronRun(event, job)
 
   const { data: chats, error } = await supabase.from('chats').select('chat_id, chat_type').eq('active', true)
   if (error) {

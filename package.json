@@ -13,6 +13,7 @@
     "@anthropic-ai/sdk": "^0.128.0",
     "@line/liff": "^2.31.0",
     "@supabase/supabase-js": "^2.116.0",
+    "fast-xml-parser": "^5.11.1",
     "nuxt": "^4.5.2",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"

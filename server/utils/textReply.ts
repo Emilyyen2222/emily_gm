@@ -1,3 +1,5 @@
+import type { NewsKind } from './newsSources'
+import type { NewsStory } from './newsDigest'
 import { rowToRecord } from './records'
 
 /**
@@ -57,6 +59,10 @@ export async function buildTextReply(
     return weekCard({ from: from.slice(5).replace('-', '/'), to: today.slice(5).replace('-', '/'), ...summary, url })
   }
 
+  // 新聞是公開內容，群組裡被 @ 到也照樣回
+  if (/^(新聞|健康新聞)$/.test(text)) return newsReply('health')
+  if (/^AI\s*新聞$/i.test(text)) return newsReply('ai')
+
   if (/^AI\s*設定$/i.test(text)) {
     if (inGroup) return textMessage(AI_TEXT.settingsInGroup)
     if (!userId) return helpCard(url, inGroup)
@@ -68,4 +74,13 @@ export async function buildTextReply(
 
   // 其他看不懂的訊息交給 AI
   return aiReply(text, userId, inGroup)
+}
+
+/**
+ * 回覆最新的一份新聞。09:00 的排程產生好存在資料庫，這裡只讀不產生。
+ * 當天還沒產生就是前一天的，卡片頂端的日期看得出來。
+ */
+export async function newsReply(kind: NewsKind): Promise<unknown> {
+  const latest = await loadLatestDigest<NewsStory[]>(kind, taipeiToday())
+  return latest?.content.length ? newsCarousel(kind, latest.date, latest.content) : textMessage(NEWS_EMPTY)
 }
