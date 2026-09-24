@@ -262,3 +262,45 @@ export const AI_TEXT = {
 
 /** 資料庫裡完全沒有新聞時（剛上線、08:00 的排程還沒跑過） */
 export const NEWS_EMPTY = '新聞還沒準備好，晚點再試試看。'
+
+/**
+ * 一次性的新功能公告，只在 date 那一天跟著早安提醒一起發（同一次 push，不多用額度）。
+ * 過了那天就不會再出現；下次要公告時改日期與內容即可。
+ * 內容只有功能介紹，不含任何人的資料，所以群組與一對一都可以收到。
+ */
+export const ANNOUNCEMENT = {
+  date: '2026-09-25',
+  items: [
+    { title: 'AI 問答', body: '直接問我問題，在群組要 @ 我' },
+    { title: '新聞', body: '打「新聞」看健康新知，打「AI新聞」看 AI 科技新聞' },
+    { title: '今日單字', body: '每天早上跟著提醒一起來' },
+    { title: '訓練紀錄', body: '記重量和次數，看進步曲線，從表單最下面的「記錄訓練」進入' },
+    { title: '💩', body: '一天可以記好幾次了' },
+  ],
+} as const
+
+export function announcementCard() {
+  return {
+    type: 'flex',
+    altText: `新功能：${ANNOUNCEMENT.items.map((i) => i.title).join('、')}`,
+    contents: bubble('新功能', [
+      { type: 'text', text: '最近多了這些', size: 'lg', weight: 'bold', color: C.brown, margin: 'md', wrap: true },
+      { type: 'separator', margin: 'lg', color: C.border },
+      {
+        type: 'box',
+        layout: 'vertical',
+        margin: 'lg',
+        spacing: 'lg',
+        contents: ANNOUNCEMENT.items.map((i) => ({
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'xs',
+          contents: [
+            { type: 'text', text: i.title, size: 'sm', weight: 'bold', color: C.brown, wrap: true },
+            { type: 'text', text: i.body, size: 'sm', color: C.brownLight, wrap: true },
+          ],
+        })),
+      },
+    ]),
+  }
+}

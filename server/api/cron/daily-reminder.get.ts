@@ -34,6 +34,9 @@ export default defineEventHandler(async (event) => {
     const wordMessage = await loadWord()
     if (wordMessage) messages.push(wordMessage)
 
+    // 一次性的新功能公告，只在指定的那一天附上
+    if (taipeiToday() === ANNOUNCEMENT.date) messages.push(announcementCard())
+
     return messages
   })
 })
