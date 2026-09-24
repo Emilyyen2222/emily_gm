@@ -2,10 +2,12 @@ import type { NewsKind } from '../../utils/newsSources'
 import type { NewsStory } from '../../utils/newsDigest'
 
 /**
- * 每天產生新聞。由 Vercel Cron 於 01:00 UTC（= 台北 09:00～09:59）觸發。
+ * 每天產生新聞。由 Vercel Cron 於 00:00 UTC（= 台北 08:00～08:59）觸發。
  *
  * 這裡不推播任何東西：新聞存起來，等有人打「新聞」「AI新聞」時回覆；
- * 11:00 的早安提醒會從今天的新聞裡挑一個單字帶出去。
+ * 09:00 的早安提醒會從今天的新聞裡挑一個單字帶出去。
+ * 刻意比提醒早一個小時：Hobby 方案只保證「在那一個小時內」執行，
+ * 兩個排程放在同一個小時的話，提醒可能比新聞先跑，那天就沒有今日單字。
  * 兩類各自獨立，一類失敗不影響另一類。
  */
 export default defineEventHandler(async (event) => {

@@ -77,7 +77,7 @@ export async function buildTextReply(
 }
 
 /**
- * 回覆最新的一份新聞。09:00 的排程產生好存在資料庫，這裡只讀不產生。
+ * 回覆最新的一份新聞。08:00 的排程產生好存在資料庫，這裡只讀不產生。
  * 當天還沒產生就是前一天的，卡片頂端的日期看得出來。
  */
 export async function newsReply(kind: NewsKind): Promise<unknown> {

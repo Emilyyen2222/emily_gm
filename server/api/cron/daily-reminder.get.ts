@@ -1,9 +1,9 @@
 /**
- * 早上的提醒推播。由 Vercel Cron 於 03:00 UTC（= 台北 11:00）觸發。
+ * 早上的提醒推播。由 Vercel Cron 於 01:00 UTC（= 台北 09:00～09:59）觸發。
  *
  * Vercel Hobby 方案的每個 Cron 一天只能觸發一次；週報沒有另設排程，
  * 而是在這裡判斷「今天是不是星期一」再決定要不要一併發出。
- * 今日單字取自 09:00 的新聞排程（/api/cron/news）產生好的新聞，這裡只負責帶出去。
+ * 今日單字取自 08:00 的新聞排程（/api/cron/news）產生好的新聞，這裡只負責帶出去。
  */
 export default defineEventHandler(async (event) => {
   // 今日單字每個聊天室都一樣，讀一次就好
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // 今日單字跟在提醒卡片後面，同一次 push 不多用額度。
-    // 當天 09:00 的新聞沒產生就不附，提醒照常發
+    // 當天 08:00 的新聞沒產生就不附，提醒照常發
     const wordMessage = await loadWord()
     if (wordMessage) messages.push(wordMessage)
 

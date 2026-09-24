@@ -260,5 +260,5 @@ export const AI_TEXT = {
   settingsInGroup: 'AI 設定要在跟我的一對一聊天裡調整。',
 } as const
 
-/** 資料庫裡完全沒有新聞時（剛上線、09:00 的排程還沒跑過） */
+/** 資料庫裡完全沒有新聞時（剛上線、08:00 的排程還沒跑過） */
 export const NEWS_EMPTY = '新聞還沒準備好，晚點再試試看。'
