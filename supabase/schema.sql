@@ -80,7 +80,9 @@ create table if not exists users (
   -- AI 問答：null = 還沒問過，要先給同意卡片
   ai_consent          text check (ai_consent in ('granted', 'declined')),
   ai_consent_at       timestamptz,
-  ai_pending_question text
+  ai_pending_question text,
+  -- 自己新增過的訓練動作
+  custom_exercises    text[]
 );
 
 -- AI 問答每人每天的使用次數
@@ -110,7 +112,21 @@ end;
 $$;
 revoke execute on function ai_usage_take(text, date, smallint) from public, anon, authenticated;
 
--- 每天 09:00 產生的新聞（公開內容，不含任何人的資料）
+-- 訓練紀錄：一列是某天的某個動作，sets = [{weight, reps}]，weight 為 null 代表自體重
+create table if not exists workouts (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      text not null,
+  workout_date date not null,
+  exercise     text not null,
+  unit         text not null default 'kg' check (unit in ('kg', 'lb')),
+  sets         jsonb not null,
+  shared       boolean not null default false,
+  sort_order   smallint not null default 0,
+  created_at   timestamptz default now()
+);
+create index if not exists workouts_user_date_idx on workouts (user_id, workout_date desc);
+
+-- 每天 08:00 產生的新聞（公開內容，不含任何人的資料）
 create table if not exists news_digests (
   kind        text not null check (kind in ('health', 'ai', 'quote')),
   digest_date date not null,
@@ -127,3 +143,4 @@ alter table users   enable row level security;
 alter table expenses enable row level security;
 alter table ai_usage enable row level security;
 alter table news_digests enable row level security;
+alter table workouts enable row level security;

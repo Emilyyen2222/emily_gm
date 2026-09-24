@@ -230,7 +230,10 @@ function shortDate(date: string) {
     <div class="mx-auto max-w-lg px-4 pt-6">
       <header class="mb-5 flex items-center justify-between">
         <h1 class="text-h1 font-bold text-brand-brown">我的紀錄</h1>
-        <NuxtLink to="/" class="text-body font-medium text-brand-orange underline">回到記錄</NuxtLink>
+        <div class="flex gap-4">
+          <NuxtLink to="/workout" class="text-body font-medium text-brand-orange underline">記錄訓練</NuxtLink>
+          <NuxtLink to="/" class="text-body font-medium text-brand-orange underline">回到記錄</NuxtLink>
+        </div>
       </header>
 
       <div v-if="initError || loadError" class="rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-body text-red-700">

@@ -4,12 +4,12 @@
   @import url('https://fonts.googleapis.com/css2?family=Huninn&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
   body { width:2500px; height:843px; background:#FFF8EF; font-family:'Huninn','PingFang TC',sans-serif;
-         display:grid; grid-template-columns:repeat(3,1fr); }
+         display:grid; grid-template-columns:repeat(4,1fr); }
   .cell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:56px; position:relative; }
   .cell + .cell::before { content:''; position:absolute; left:0; top:150px; bottom:150px;
                           width:4px; background:#EAD7BD; border-radius:2px; }
-  .label { font-size:100px; color:#3A2513; font-weight:700; letter-spacing:3px; }
-  svg { width:180px; height:180px; }
+  .label { font-size:88px; color:#3A2513; font-weight:700; letter-spacing:3px; }
+  svg { width:160px; height:160px; }
 </style></head>
 <body>
   <div class="cell">
@@ -24,6 +24,12 @@
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
     </svg>
     <div class="label">我的紀錄</div>
+  </div>
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#F9A726" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/>
+    </svg>
+    <div class="label">記錄訓練</div>
   </div>
   <div class="cell">
     <svg viewBox="0 0 24 24" fill="none" stroke="#F9A726" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">

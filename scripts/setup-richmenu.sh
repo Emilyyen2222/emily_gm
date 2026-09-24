@@ -22,11 +22,13 @@ ID=$(curl -s -X POST https://api.line.me/v2/bot/richmenu -H "$AUTH" -H 'Content-
   \"name\": \"emily-gm-main\",
   \"chatBarText\": \"開啟選單\",
   \"areas\": [
-    { \"bounds\": { \"x\": 0,    \"y\": 0, \"width\": 833, \"height\": 843 },
+    { \"bounds\": { \"x\": 0,    \"y\": 0, \"width\": 625, \"height\": 843 },
       \"action\": { \"type\": \"uri\", \"label\": \"今天記錄\", \"uri\": \"$LIFF_URL\" } },
-    { \"bounds\": { \"x\": 833,  \"y\": 0, \"width\": 834, \"height\": 843 },
+    { \"bounds\": { \"x\": 625,  \"y\": 0, \"width\": 625, \"height\": 843 },
       \"action\": { \"type\": \"uri\", \"label\": \"我的紀錄\", \"uri\": \"$LIFF_URL/history\" } },
-    { \"bounds\": { \"x\": 1667, \"y\": 0, \"width\": 833, \"height\": 843 },
+    { \"bounds\": { \"x\": 1250, \"y\": 0, \"width\": 625, \"height\": 843 },
+      \"action\": { \"type\": \"uri\", \"label\": \"記錄訓練\", \"uri\": \"$LIFF_URL/workout\" } },
+    { \"bounds\": { \"x\": 1875, \"y\": 0, \"width\": 625, \"height\": 843 },
       \"action\": { \"type\": \"message\", \"label\": \"說明\", \"text\": \"說明\" } }
   ]
 }" | sed -n 's/.*"richMenuId":"\([^"]*\)".*/\1/p')

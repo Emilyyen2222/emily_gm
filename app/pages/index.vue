@@ -486,9 +486,10 @@ async function submit(share: boolean) {
           {{ noShareReason }}
         </p>
 
-        <NuxtLink to="/history" class="block py-2 text-center text-body font-medium text-brand-orange underline">
-          查看我的紀錄
-        </NuxtLink>
+        <div class="flex justify-center gap-6">
+          <NuxtLink to="/history" class="py-2 text-body font-medium text-brand-orange underline">查看我的紀錄</NuxtLink>
+          <NuxtLink to="/workout" class="py-2 text-body font-medium text-brand-orange underline">記錄訓練</NuxtLink>
+        </div>
 
       </form>
     </div>
