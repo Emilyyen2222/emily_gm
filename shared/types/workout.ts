@@ -4,15 +4,16 @@
  */
 
 /**
- * 預設的動作清單，分下肢與上肢。每一類裡最常做的排前面。
+ * 預設的動作清單：第一組下肢、第二組上肢，每組裡最常做的排前面。
+ * 畫面上只用間距把兩組稍微分開，不寫分類標題。
  * 自己新增的動作另外存在 users.custom_exercises
  */
-export const EXERCISE_GROUPS = [
-  { label: '下肢', exercises: ['硬舉', '深蹲', '保加利亞分腿蹲', '腿推', '臀推'] },
-  { label: '上肢', exercises: ['引體向上', '胸推', '伏地挺身', '臥推', '肩推', '槓鈴划船', '滑輪下拉'] },
-] as const
+export const EXERCISE_GROUPS: readonly (readonly string[])[] = [
+  ['硬舉', '深蹲', '保加利亞分腿蹲', '腿推', '臀推'],
+  ['引體向上', '胸推', '肩推', '槓鈴划船', '滑輪下拉'],
+]
 
-export const DEFAULT_EXERCISES: readonly string[] = EXERCISE_GROUPS.flatMap((g) => g.exercises)
+export const DEFAULT_EXERCISES: readonly string[] = EXERCISE_GROUPS.flat()
 
 export const WEIGHT_UNITS = ['kg', 'lb'] as const
 export type WeightUnit = (typeof WEIGHT_UNITS)[number]
