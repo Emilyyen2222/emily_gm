@@ -38,7 +38,7 @@ export default defineEventHandler(async (event): Promise<{ date: string; exercis
   }
 
   // 用過的自訂動作記起來，下次直接出現在清單裡
-  const custom = exercises.map((e) => e.exercise).filter((e) => !(DEFAULT_EXERCISES as readonly string[]).includes(e))
+  const custom = exercises.map((e) => e.exercise).filter((e) => !DEFAULT_EXERCISES.includes(e))
   if (custom.length) {
     const { data: user } = await supabase.from('users').select('custom_exercises').eq('user_id', userId).maybeSingle()
     const merged = [...new Set([...(user?.custom_exercises ?? []), ...custom])].slice(-CUSTOM_EXERCISES_MAX)

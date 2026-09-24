@@ -3,21 +3,16 @@
  * 有氧（時間、距離）刻意先不做，只記重量與次數。
  */
 
-/** 預設的動作清單。自己新增的動作另外存在 users.custom_exercises */
-export const DEFAULT_EXERCISES = [
-  '深蹲',
-  '臥推',
-  '硬舉',
-  '肩推',
-  '槓鈴划船',
-  '引體向上',
-  '滑輪下拉',
-  '腿推',
-  '啞鈴彎舉',
-  '三頭下壓',
-  '臀推',
-  '弓箭步',
+/**
+ * 預設的動作清單，分下肢與上肢。每一類裡最常做的排前面。
+ * 自己新增的動作另外存在 users.custom_exercises
+ */
+export const EXERCISE_GROUPS = [
+  { label: '下肢', exercises: ['硬舉', '深蹲', '保加利亞分腿蹲', '腿推', '臀推'] },
+  { label: '上肢', exercises: ['引體向上', '胸推', '伏地挺身', '臥推', '肩推', '槓鈴划船', '滑輪下拉'] },
 ] as const
+
+export const DEFAULT_EXERCISES: readonly string[] = EXERCISE_GROUPS.flatMap((g) => g.exercises)
 
 export const WEIGHT_UNITS = ['kg', 'lb'] as const
 export type WeightUnit = (typeof WEIGHT_UNITS)[number]

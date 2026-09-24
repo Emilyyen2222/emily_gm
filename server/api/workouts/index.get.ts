@@ -42,7 +42,10 @@ export default defineEventHandler(async (event): Promise<WorkoutResponse> => {
     if (weights.length) history.push({ date: r.workout_date, exercise: r.exercise, unit: r.unit, maxWeight: Math.max(...weights) })
   }
 
-  const custom = (user?.custom_exercises ?? []).filter((e: string) => !(DEFAULT_EXERCISES as readonly string[]).includes(e))
+  // 自己新增過的，加上歷史裡出現過、但已經不在預設清單的動作（例如預設清單調整過），
+  // 否則以前練過的動作會從清單上消失，只能重新打字
+  const pastNames = (historyRows ?? []).map((r) => r.exercise as string)
+  const custom = [...new Set([...(user?.custom_exercises ?? []), ...pastNames])].filter((e) => !DEFAULT_EXERCISES.includes(e))
 
   return {
     today,

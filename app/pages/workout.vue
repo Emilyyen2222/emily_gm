@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   DEFAULT_EXERCISES,
+  EXERCISE_GROUPS,
   EXERCISE_NAME_MAX,
   WORKOUT_MAX_EXERCISES,
   WORKOUT_MAX_SETS,
@@ -74,11 +75,14 @@ function onDateChange(event: Event) {
 const picking = ref(false)
 const draft = ref('')
 
-/** 清單：預設動作＋自己新增過的，扣掉今天已經加了的 */
-const choices = computed(() => {
-  const added = new Set(exercises.value.map((e) => e.exercise))
-  return [...DEFAULT_EXERCISES, ...customExercises.value].filter((e) => !added.has(e))
-})
+/** 清單：預設動作分下肢、上肢，自己新增過的另外一區，都扣掉今天已經加了的 */
+const added = computed(() => new Set(exercises.value.map((e) => e.exercise)))
+const groupChoices = computed(() =>
+  EXERCISE_GROUPS.map((g) => ({ label: g.label, exercises: g.exercises.filter((e) => !added.value.has(e)) })).filter(
+    (g) => g.exercises.length,
+  ),
+)
+const customChoices = computed(() => customExercises.value.filter((e) => !added.value.has(e)))
 
 function addExercise(name: string) {
   const exercise = name.trim().slice(0, EXERCISE_NAME_MAX)
@@ -86,7 +90,7 @@ function addExercise(name: string) {
   if (exercises.value.some((e) => e.exercise === exercise)) return
   // 單位預設用這個動作上次用的，沒練過就用 kg
   exercises.value.push({ exercise, unit: lastUnits.value[exercise] ?? 'kg', sets: [{ weight: null, reps: null }] })
-  if (!(DEFAULT_EXERCISES as readonly string[]).includes(exercise) && !customExercises.value.includes(exercise)) {
+  if (!DEFAULT_EXERCISES.includes(exercise) && !customExercises.value.includes(exercise)) {
     customExercises.value.push(exercise)
   }
   draft.value = ''
@@ -274,9 +278,24 @@ const curves = computed(() => {
 
         <section v-if="picking" class="rounded-2xl border border-brand-border bg-white p-4">
           <p class="mb-2 text-caption text-brand-brown-light">常用動作</p>
-          <div class="flex flex-wrap gap-2">
+          <div v-for="g in groupChoices" :key="g.label" class="mb-3">
+            <p class="mb-1.5 text-caption font-bold text-brand-brown">{{ g.label }}</p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="name in g.exercises"
+                :key="name"
+                type="button"
+                class="rounded-full border-2 border-brand-border bg-white px-3 py-1.5 text-body text-brand-brown"
+                @click="addExercise(name)"
+              >
+                {{ name }}
+              </button>
+            </div>
+          </div>
+          <p class="mb-2 mt-4 text-caption text-brand-brown-light">自己新增</p>
+          <div v-if="customChoices.length" class="mb-3 flex flex-wrap gap-2">
             <button
-              v-for="name in choices"
+              v-for="name in customChoices"
               :key="name"
               type="button"
               class="rounded-full border-2 border-brand-border bg-white px-3 py-1.5 text-body text-brand-brown"
@@ -285,7 +304,6 @@ const curves = computed(() => {
               {{ name }}
             </button>
           </div>
-          <p class="mb-2 mt-4 text-caption text-brand-brown-light">自己新增</p>
           <div class="flex gap-2">
             <input
               v-model="draft"
