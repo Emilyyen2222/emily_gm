@@ -85,7 +85,7 @@ export async function askClaude(
       .map((b) => b.text)
       .join('')
       .trim()
-    return text ? { ok: true, text } : { ok: false }
+    return text ? { ok: true, text: stripMarkdown(text) } : { ok: false }
   } catch (err) {
     // 額度用完是 400（credit balance too low），key 錯是 401，都一樣回說明。
     // 記下類型與狀態碼，方便從 Vercel log 看出是哪一種
@@ -96,6 +96,25 @@ export async function askClaude(
     }
     return { ok: false }
   }
+}
+
+/**
+ * 拿掉 LINE 不會渲染的 Markdown 粗體與標題符號。提示詞已經要求純文字，
+ * 但 Haiku 偶爾還是會寫 **粗體**，LINE 上就會原封不動顯示星號。
+ * ``` 包住的程式碼不動：裡面的 * 與 # 可能是程式本身的內容。
+ */
+export function stripMarkdown(text: string): string {
+  return text
+    .split(/(```[\s\S]*?```)/)
+    .map((part, i) =>
+      i % 2 === 1
+        ? part
+        : part
+            .replace(/\*\*(.+?)\*\*/g, '$1')
+            .replace(/__(.+?)__/g, '$1')
+            .replace(/^#{1,6}\s+/gm, ''),
+    )
+    .join('')
 }
 
 /** 今天還能不能問。可以的話同時記上一筆（資料庫裡是原子操作） */
