@@ -85,6 +85,7 @@ const liverPercent = computed(() => {
 const progress = computed(() => countFilled(form.value))
 
 /** 睡眠時數由入睡與起床時間即時算出，讓使用者填完馬上看到 */
+const { bottomBar, paddingStyle } = useBottomBarPadding()
 const sleepHours = computed(() => computeSleepHours(form.value.bedTime, form.value.wakeTime))
 
 /**
@@ -258,7 +259,7 @@ async function submit(share: boolean) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-cream pb-48">
+  <div class="min-h-screen bg-brand-cream" :style="paddingStyle">
     <div class="mx-auto max-w-lg px-4 pt-6">
       <header class="mb-5">
         <div class="flex items-center gap-2">
@@ -496,6 +497,7 @@ async function submit(share: boolean) {
 
     <div
       v-if="ready && !loading"
+      ref="bottomBar"
       class="fixed inset-x-0 bottom-0 border-t border-brand-border bg-brand-cream/95 p-4 backdrop-blur"
       style="padding-bottom: calc(1rem + env(safe-area-inset-bottom))"
     >

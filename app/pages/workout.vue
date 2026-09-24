@@ -25,20 +25,7 @@ const customExercises = ref<string[]>([])
 const lastUnits = ref<Record<string, WeightUnit>>({})
 const history = ref<WorkoutMax[]>([])
 
-/**
- * 底部固定列的實際高度。那一列會因為「存好了」或錯誤訊息而變高，
- * 寫死的留白一定會有某種情況不夠，內容最底下就被蓋住。量出來多少就留多少。
- */
-const bottomBar = ref<HTMLElement | null>(null)
-const bottomBarHeight = ref(160)
-let barObserver: ResizeObserver | null = null
-watch(bottomBar, (el) => {
-  barObserver?.disconnect()
-  if (!el) return
-  barObserver = new ResizeObserver(() => (bottomBarHeight.value = el.offsetHeight))
-  barObserver.observe(el)
-})
-onBeforeUnmount(() => barObserver?.disconnect())
+const { bottomBar, paddingStyle } = useBottomBarPadding()
 
 const saving = ref(false)
 const savedAt = ref<string | null>(null)
@@ -191,7 +178,7 @@ const curves = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-cream" :style="{ paddingBottom: `${bottomBarHeight + 24}px` }">
+  <div class="min-h-screen bg-brand-cream" :style="paddingStyle">
     <div class="mx-auto max-w-lg px-4 pt-6">
       <header class="mb-5 flex items-center justify-between">
         <h1 class="text-h1 font-bold text-brand-brown">訓練紀錄</h1>
