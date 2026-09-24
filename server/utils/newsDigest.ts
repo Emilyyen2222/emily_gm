@@ -22,7 +22,8 @@ const STORIES = 3
 export interface NewsStory {
   title: string
   points: { zh: string; en: string }[]
-  vocab: { en: string; zh: string }[]
+  /** example 是用到這個字、講這則新聞的一句話，今日單字卡用它當例句。舊資料沒有這欄 */
+  vocab: { en: string; zh: string; example?: { en: string; zh: string } }[]
   source: string
   /** 文章發布日期，M/D */
   date: string
@@ -34,6 +35,9 @@ const PICK_RULES: Record<NewsKind, string> = {
   ai: `從下面的候選挑最多 ${STORIES} 則最值得軟體工程師知道的 AI 科技新聞。範圍：AI 模型與產品發布；科技公司與產業動態（Nvidia、馬斯克/xAI、OpenAI、Anthropic、Google、微軟等的投資、融資、人事、政策）；晶片與硬體；開發者工具。
 AI 應用在其他領域（生物、醫療、法律等）的新聞只有重大突破才選。跟 AI 與科技產業無關的不要；Reddit 的閒聊、迷因、求助文不要；企業客戶案例、行銷文不要。盡量涵蓋不同類別。`,
 }
+
+/** 同一件事常被好幾個來源報導，挑的時候只能算一則 */
+const SAME_EVENT_RULE = '同一件事被不同來源報導的，只能選其中一則。'
 
 const KIND_NAME: Record<NewsKind, string> = { health: '健康新知', ai: 'AI 科技新聞' }
 
@@ -50,7 +54,7 @@ export async function generateNews(kind: NewsKind, candidates: NewsItem[], exclu
 
   // 第一階段：只挑
   const list = pool.map((c, i) => `[${i}] (${c.source}) ${c.title}\n${c.summary || '（沒有簡介）'}`).join('\n\n')
-  const picked = await askJson<{ picks: number[] }>(client, PICK_MODEL, '你幫忙挑選新聞。', `${PICK_RULES[kind]}\n符合的不夠就少給，一則都沒有就給空陣列。\n\n${list}`, {
+  const picked = await askJson<{ picks: number[] }>(client, PICK_MODEL, '你幫忙挑選新聞。', `${PICK_RULES[kind]}\n${SAME_EVENT_RULE}\n符合的不夠就少給，一則都沒有就給空陣列。\n\n${list}`, {
     type: 'object',
     properties: { picks: { type: 'array', items: { type: 'integer' }, description: '候選編號' } },
     required: ['picks'],
@@ -68,7 +72,7 @@ export async function generateNews(kind: NewsKind, candidates: NewsItem[], exclu
     .map((c, i) => `[${i}] 標題：${c.title}\n簡介：${c.summary}\n原文節錄：\n${bodies[i] || '（抓不到原文，只能用標題與簡介）'}`)
     .join('\n\n=====\n\n')
 
-  const written = await askJson<{ stories: { title_zh: string; points: { zh: string; en: string }[]; vocab: { en: string; zh: string }[] }[] }>(
+  const written = await askJson<{ stories: { title_zh: string; points: { zh: string; en: string }[]; vocab: NewsStory['vocab'] }[] }>(
     client,
     WRITE_MODEL,
     `你幫一群軟體工程師朋友整理每日${KIND_NAME[kind]}，同時讓他們練英文。`,
@@ -79,7 +83,11 @@ export async function generateNews(kind: NewsKind, candidates: NewsItem[], exclu
   ・第 1 個：用一句話講清楚「誰做了什麼」，不要空泛（不要寫「強化了效能」這種沒有內容的話）。
   ・第 2 個：原文裡對讀者最有感的一個具體事實，用白話講。數字最多一個，而且要講清楚單位與比較對象（例如「API 價格砍半」，不要列一串價格）。不能是你自己的評論或推論（不要寫「這代表…」「這展示了…」）。
 - 非本行的專有名詞（醫學、生物、法律等）要用白話帶過；一般技術名詞不用解釋。
-- vocab 剛好 2 個：從你寫的 en 句子裡，原樣照抄日常生活或職場上用得到的英文單字或片語（例如 flagship、reduce、emphasize），不要專有名詞、產品名、技術術語。先寫好句子再挑字；句子裡沒有的字不能出現在 vocab。zh 是中文意思，6 字內。
+- vocab 剛好 2 個，程度是 CEFR B2～C1（約多益 750 分以上）：新聞與職場常見、但不是基礎字，例如 mitigate、scrutiny、unprecedented、incentive、surge、plummet。
+  ・不要 A1～B1 的基礎字（例如 warn、mix、report、launch、use、new），也不要專有名詞、產品名、技術術語。
+  ・單字不必出現在 points 裡；可以從原文挑，或挑描述這則新聞很貼切的字。
+  ・en 用原形（動詞原形、名詞單數）；zh 是中文意思，6 字內。
+  ・example：一句講這則新聞、而且用到這個字的英文（en，20 個字以內，可以用變化形，例如 surged），加上中文翻譯（zh）。內容要符合原文事實。
 - 只能根據提供的內容寫，不要補充、不要誇大（「可能」不能寫成「確定」，細胞或動物實驗不能寫成對人有效）。
 
 ${docs}`,
@@ -105,8 +113,17 @@ ${docs}`,
                 type: 'array',
                 items: {
                   type: 'object',
-                  properties: { en: { type: 'string' }, zh: { type: 'string' } },
-                  required: ['en', 'zh'],
+                  properties: {
+                    en: { type: 'string' },
+                    zh: { type: 'string' },
+                    example: {
+                      type: 'object',
+                      properties: { en: { type: 'string' }, zh: { type: 'string' } },
+                      required: ['en', 'zh'],
+                      additionalProperties: false,
+                    },
+                  },
+                  required: ['en', 'zh', 'example'],
                   additionalProperties: false,
                 },
               },
@@ -170,9 +187,9 @@ function monthDay(ms: number): string {
 }
 
 /**
- * 從今天的新聞挑今日單字：健康、AI 一天輪一類，取第一則的第一個單字，
- * 例句是那則新聞裡含有這個字的英文句子。當天那一類沒產生就換另一類，兩類都沒有就回 null。
- * 不另外呼叫 AI：單字與例句都是新聞摘要裡現成的，句子是真的新聞，不是編的。
+ * 從今天的新聞挑今日單字：健康、AI 一天輪一類，取第一個有合格例句的單字，
+ * 例句是 AI 寫摘要時一起寫的、講這則新聞並用到這個字的句子。當天那一類沒產生就換另一類，兩類都沒有就回 null。
+ * 不另外呼叫 AI：單字與例句在寫新聞摘要時就一起產生了，講的是真的新聞，不是編的名言。
  */
 export async function pickTodayWord(today: string): Promise<TodayWord | null> {
   const dayNumber = Math.floor(Date.parse(`${today}T00:00:00Z`) / 86_400_000)
@@ -182,11 +199,11 @@ export async function pickTodayWord(today: string): Promise<TodayWord | null> {
     const latest = await loadLatestDigest<NewsStory[]>(kind, today)
     // 只用今天的，不拿前一天的湊數
     if (!latest || latest.date !== today) continue
-    // AI 偶爾會給出沒出現在句子裡的單字，例句不含這個字就沒意義，換下一個
+    // 例句一定要含這個字才有意義：優先用單字自帶的例句，舊資料沒有就找摘要裡含這個字的句子
     for (const story of latest.content) {
       for (const vocab of story.vocab) {
-        const point = story.points.find((p) => appearsIn(vocab.en, p.en))
-        if (point) return { kind, word: vocab.en, meaning: vocab.zh, sentence: point }
+        const sentence = [vocab.example, ...story.points].find((p) => p && appearsIn(vocab.en, p.en))
+        if (sentence) return { kind, word: vocab.en, meaning: vocab.zh, sentence }
       }
     }
   }
