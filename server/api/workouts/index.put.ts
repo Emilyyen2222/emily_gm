@@ -29,7 +29,7 @@ export default defineEventHandler(async (event): Promise<{ date: string; exercis
         workout_date: date,
         exercise: ex.exercise,
         unit: ex.unit,
-        sets: ex.sets,
+        sets: ex.rows,
         shared,
         sort_order: i,
       })),

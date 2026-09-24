@@ -1,4 +1,4 @@
-import { DEFAULT_EXERCISES, type WeightUnit, type WorkoutExercise, type WorkoutMax, type WorkoutResponse } from '../../../shared/types/workout'
+import { DEFAULT_EXERCISES, normalizeRows, type WeightUnit, type WorkoutExercise, type WorkoutMax, type WorkoutResponse } from '../../../shared/types/workout'
 
 /** 進步曲線看多久以前的紀錄 */
 const HISTORY_DAYS = 180
@@ -31,14 +31,15 @@ export default defineEventHandler(async (event): Promise<WorkoutResponse> => {
     supabase.from('users').select('custom_exercises').eq('user_id', userId).maybeSingle(),
   ])
 
-  const exercises: WorkoutExercise[] = (dayRows ?? []).map((r) => ({ exercise: r.exercise, unit: r.unit, sets: r.sets }))
+  // 資料庫欄位叫 sets（最早是一組一筆），讀出來統一整理成「重量 × 次數 × 組數」
+  const exercises: WorkoutExercise[] = (dayRows ?? []).map((r) => ({ exercise: r.exercise, unit: r.unit, rows: normalizeRows(r.sets) }))
 
   // 每個動作上次用的單位：歷史照日期由舊到新，後面的覆蓋前面的
   const lastUnits: Record<string, WeightUnit> = {}
   const history: WorkoutMax[] = []
   for (const r of historyRows ?? []) {
     lastUnits[r.exercise] = r.unit
-    const weights = (r.sets as { weight: number | null }[]).map((s) => s.weight).filter((w): w is number => w !== null)
+    const weights = normalizeRows(r.sets).map((s) => s.weight).filter((w): w is number => w !== null)
     if (weights.length) history.push({ date: r.workout_date, exercise: r.exercise, unit: r.unit, maxWeight: Math.max(...weights) })
   }
 

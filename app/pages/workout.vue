@@ -4,7 +4,7 @@ import {
   EXERCISE_GROUPS,
   EXERCISE_NAME_MAX,
   WORKOUT_MAX_EXERCISES,
-  WORKOUT_MAX_SETS,
+  WORKOUT_MAX_ROWS,
   convertWeight,
   type WeightUnit,
   type WorkoutExercise,
@@ -52,7 +52,7 @@ async function load(target?: string) {
     today.value = data.today
     date.value = data.date
     // 複製一份，避免直接改到回傳物件
-    exercises.value = data.exercises.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s })) }))
+    exercises.value = data.exercises.map((e) => ({ ...e, rows: e.rows.map((r) => ({ ...r })) }))
     shared.value = data.shared
     customExercises.value = data.customExercises
     lastUnits.value = data.lastUnits
@@ -87,7 +87,8 @@ function addExercise(name: string) {
   if (!exercise || exercises.value.length >= WORKOUT_MAX_EXERCISES) return
   if (exercises.value.some((e) => e.exercise === exercise)) return
   // 單位預設用這個動作上次用的，沒練過就用 kg
-  exercises.value.push({ exercise, unit: lastUnits.value[exercise] ?? 'kg', sets: [{ weight: null, reps: null }] })
+  // 預設一行、組數帶 1，大部分動作填重量和次數就記完了
+  exercises.value.push({ exercise, unit: lastUnits.value[exercise] ?? 'kg', rows: [{ weight: null, reps: null, sets: 1 }] })
   if (!DEFAULT_EXERCISES.includes(exercise) && !customExercises.value.includes(exercise)) {
     customExercises.value.push(exercise)
   }
@@ -95,16 +96,16 @@ function addExercise(name: string) {
   picking.value = false
 }
 
-function addSet(ex: WorkoutExercise) {
-  if (ex.sets.length >= WORKOUT_MAX_SETS) return
-  // 下一組通常跟上一組一樣，先帶入，改一下就好
-  const last = ex.sets[ex.sets.length - 1]
-  ex.sets.push({ weight: last?.weight ?? null, reps: last?.reps ?? null })
+/** 中途換重量時多記一行。次數與組數先帶上一行的，通常只需要改重量 */
+function addRow(ex: WorkoutExercise) {
+  if (ex.rows.length >= WORKOUT_MAX_ROWS) return
+  const last = ex.rows[ex.rows.length - 1]
+  ex.rows.push({ weight: last?.weight ?? null, reps: last?.reps ?? null, sets: last?.sets ?? 1 })
 }
 
-function removeSet(ex: WorkoutExercise, i: number) {
-  ex.sets.splice(i, 1)
-  if (!ex.sets.length) exercises.value = exercises.value.filter((e) => e !== ex)
+function removeRow(ex: WorkoutExercise, i: number) {
+  ex.rows.splice(i, 1)
+  if (!ex.rows.length) exercises.value = exercises.value.filter((e) => e !== ex)
 }
 
 function removeExercise(ex: WorkoutExercise) {
@@ -234,30 +235,37 @@ const curves = computed(() => {
           </div>
 
           <div class="space-y-2">
-            <div v-for="(set, i) in ex.sets" :key="i" class="flex items-center gap-2 text-body text-brand-brown">
-              <span class="w-14 shrink-0 text-caption text-brand-brown-light">第 {{ i + 1 }} 組</span>
+            <div v-for="(row, i) in ex.rows" :key="i" class="flex items-center gap-1.5 text-body text-brand-brown">
               <input
-                v-model.number="set.weight"
+                v-model.number="row.weight"
                 type="number"
                 inputmode="decimal"
                 min="0"
                 step="0.5"
-                class="h-10 w-16 min-w-0 rounded-xl border-2 border-brand-border bg-white px-2 text-center focus:border-brand-orange focus:outline-none"
+                class="h-10 w-16 min-w-0 rounded-xl border-2 border-brand-border bg-white px-1 text-center focus:border-brand-orange focus:outline-none"
               />
-              <span class="text-caption text-brand-brown-light">{{ ex.unit }} ×</span>
+              <span class="shrink-0 text-caption text-brand-brown-light">{{ ex.unit }} ×</span>
               <input
-                v-model.number="set.reps"
+                v-model.number="row.reps"
                 type="number"
                 inputmode="numeric"
                 min="1"
-                class="h-10 w-14 min-w-0 rounded-xl border-2 border-brand-border bg-white px-2 text-center focus:border-brand-orange focus:outline-none"
+                class="h-10 w-12 min-w-0 rounded-xl border-2 border-brand-border bg-white px-1 text-center focus:border-brand-orange focus:outline-none"
               />
-              <span class="text-caption text-brand-brown-light">次</span>
+              <span class="shrink-0 text-caption text-brand-brown-light">下 ×</span>
+              <input
+                v-model.number="row.sets"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                class="h-10 w-12 min-w-0 rounded-xl border-2 border-brand-border bg-white px-1 text-center focus:border-brand-orange focus:outline-none"
+              />
+              <span class="shrink-0 text-caption text-brand-brown-light">組</span>
               <button
                 type="button"
                 class="ml-auto h-9 w-9 shrink-0 rounded-full text-body text-brand-brown-light"
-                :aria-label="`刪掉第 ${i + 1} 組`"
-                @click="removeSet(ex, i)"
+                :aria-label="`刪掉第 ${i + 1} 行`"
+                @click="removeRow(ex, i)"
               >
                 ✕
               </button>
@@ -265,12 +273,12 @@ const curves = computed(() => {
           </div>
 
           <button
-            v-if="ex.sets.length < WORKOUT_MAX_SETS"
+            v-if="ex.rows.length < WORKOUT_MAX_ROWS"
             type="button"
             class="mt-3 h-10 w-full rounded-xl border-2 border-dashed border-brand-border text-body text-brand-brown-light"
-            @click="addSet(ex)"
+            @click="addRow(ex)"
           >
-            ＋ 加一組
+            ＋ 換個重量再記一行
           </button>
         </section>
 

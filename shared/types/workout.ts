@@ -20,28 +20,31 @@ export type WeightUnit = (typeof WEIGHT_UNITS)[number]
 
 /** 動作名稱的字數上限。卡片上一行放得下才有意義 */
 export const EXERCISE_NAME_MAX = 12
-/** 一天最多幾個動作、每個動作最多幾組。這是防呆上限，不是想限制誰 */
+/** 一天最多幾個動作、每個動作最多幾行、一行最多幾組。這是防呆上限，不是想限制誰 */
 export const WORKOUT_MAX_EXERCISES = 15
-export const WORKOUT_MAX_SETS = 20
+export const WORKOUT_MAX_ROWS = 10
+export const SETS_MAX = 50
 export const WEIGHT_MAX = 1000
 export const REPS_MAX = 1000
 
 export const LB_PER_KG = 2.20462
 
 /**
- * 一組。weight 為 null 代表自體重（引體向上這類）。
- * 表單上還沒填的格子 reps 也可能是 null，送出時後端會濾掉。
+ * 一行：「重量 × 次數 × 組數」，健身記錄的一般寫法。
+ * 大部分動作一行就記完；中途換重量（例如漸增）才會有第二行。
+ * weight 為 null 代表自體重。表單上還沒填的格子也可能是 null，送出時後端會處理。
  */
-export interface WorkoutSet {
+export interface WorkoutRow {
   weight: number | null
   reps: number | null
+  sets: number | null
 }
 
 export interface WorkoutExercise {
   exercise: string
   /** 每個動作各自選單位：同一間健身房裡，啞鈴可能是 lb、槓鈴是 kg */
   unit: WeightUnit
-  sets: WorkoutSet[]
+  rows: WorkoutRow[]
 }
 
 /** 某個動作在某天的最大重量，畫進步曲線用 */
@@ -79,8 +82,28 @@ export function formatWeight(weight: number): string {
 }
 
 /**
+ * 整理資料庫裡的 sets 欄位。
+ * 最早的版本是一組一筆（{weight, reps}，沒有 sets），讀出來時把連續相同的合併成
+ * 「重量 × 次數 × 組數」，舊紀錄就會以新的寫法顯示，不會遺失。
+ */
+export function normalizeRows(raw: unknown): WorkoutRow[] {
+  const rows: WorkoutRow[] = (Array.isArray(raw) ? raw : []).map((r: any) => ({
+    weight: typeof r?.weight === 'number' ? r.weight : null,
+    reps: typeof r?.reps === 'number' ? r.reps : null,
+    sets: typeof r?.sets === 'number' ? r.sets : 1,
+  }))
+  const merged: WorkoutRow[] = []
+  for (const r of rows) {
+    const last = merged[merged.length - 1]
+    if (last && last.weight === r.weight && last.reps === r.reps) last.sets = (last.sets ?? 1) + (r.sets ?? 1)
+    else merged.push({ ...r })
+  }
+  return merged
+}
+
+/**
  * 清洗前端送來的訓練內容。不信任任何前端數值：
- * 名稱截長度、單位白名單、重量與次數限範圍，沒填次數的組直接丟掉。
+ * 名稱截長度、單位白名單、重量與次數限範圍，沒填次數的行直接丟掉，沒填組數當 1 組。
  */
 export function sanitizeWorkout(raw: unknown): WorkoutExercise[] {
   if (!Array.isArray(raw)) return []
@@ -93,14 +116,19 @@ export function sanitizeWorkout(raw: unknown): WorkoutExercise[] {
     if (!exercise || seen.has(exercise)) continue
 
     const unit: WeightUnit = (WEIGHT_UNITS as readonly string[]).includes(item?.unit) ? item.unit : 'kg'
-    const sets: WorkoutSet[] = (Array.isArray(item?.sets) ? item.sets : [])
-      .slice(0, WORKOUT_MAX_SETS)
-      .map((s: any) => ({ weight: cleanNumber(s?.weight, WEIGHT_MAX), reps: cleanInteger(s?.reps, REPS_MAX) }))
-      .filter((s: WorkoutSet) => s.reps !== null)
+    const cleaned = (Array.isArray(item?.rows) ? item.rows : [])
+      .slice(0, WORKOUT_MAX_ROWS)
+      .map((r: any) => ({
+        weight: cleanNumber(r?.weight, WEIGHT_MAX),
+        reps: cleanInteger(r?.reps, REPS_MAX),
+        sets: cleanInteger(r?.sets, SETS_MAX) ?? 1,
+      }))
+      .filter((r: WorkoutRow) => r.reps !== null)
+    const rows = normalizeRows(cleaned)
 
-    if (!sets.length) continue
+    if (!rows.length) continue
     seen.add(exercise)
-    out.push({ exercise, unit, sets })
+    out.push({ exercise, unit, rows })
   }
   return out
 }
@@ -120,21 +148,12 @@ function cleanInteger(value: unknown, max: number): number | null {
 }
 
 /**
- * 卡片上一個動作的摘要。
- * 每組都一樣：「60 kg × 8 × 3 組」；每組不同：「40×10、45×8、45×6 kg」；沒填重量是「自體重」。
+ * 卡片上一個動作的摘要：「60 kg × 8 下 × 3 組」，換過重量就用頓號接下一行；
+ * 沒填重量寫「自體重」。
  */
 export function summarizeSets(ex: WorkoutExercise): string {
-  const sets = ex.sets.filter((s) => s.reps !== null)
-  if (!sets.length) return ''
-  const w = (weight: number | null) => (weight === null ? '自體重' : formatWeight(weight))
-
-  const first = sets[0]!
-  const allSame = sets.every((s) => s.weight === first.weight && s.reps === first.reps)
-  if (allSame) {
-    const weight = first.weight === null ? '自體重' : `${formatWeight(first.weight)} ${ex.unit}`
-    return `${weight} × ${first.reps}${sets.length > 1 ? ` × ${sets.length} 組` : ''}`
-  }
-
-  const parts = sets.map((s) => `${w(s.weight)}×${s.reps}`).join('、')
-  return sets.some((s) => s.weight !== null) ? `${parts} ${ex.unit}` : parts
+  return ex.rows
+    .filter((r) => r.reps !== null)
+    .map((r) => `${r.weight === null ? '自體重' : `${formatWeight(r.weight)} ${ex.unit}`} × ${r.reps} 下 × ${r.sets ?? 1} 組`)
+    .join('、')
 }
