@@ -24,7 +24,7 @@ Built end to end: product decisions, data model, backend, frontend, and deployme
   <tr>
     <td align="center"><img src="docs/images/08-shared-card.jpg" width="240" alt="Summary card shared to the group chat"><br><sub>The summary card friends see</sub></td>
     <td align="center"><img src="docs/images/07-history.jpg" width="240" alt="History page with weekly review and sleep trend"><br><sub>History and trends</sub></td>
-    <td></td>
+    <td align="center"><img src="docs/images/09-rich-menu.jpg" width="240" alt="One-to-one chat with keyword help and the rich menu"><br><sub>One-to-one chat and rich menu</sub></td>
   </tr>
 </table>
 
