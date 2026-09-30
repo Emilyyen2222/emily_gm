@@ -8,11 +8,25 @@ can keep an eye on each other.
 Built end to end: product decisions, data model, backend, frontend, and deployment.
 
 **Stack** — Nuxt 4 (SPA) · TypeScript · Tailwind CSS · Nitro server routes · Supabase
-(PostgreSQL) · Vercel · LINE Messaging API · LINE Login / LIFF
+(PostgreSQL) · Vercel · LINE Messaging API · LINE Login / LIFF · Claude API
 
-<!-- 截圖：建議放三張 —— 表單、群組裡的分享卡片、歷史頁的趨勢。
-     群組那張記得把朋友的名字、頭貼和聊天內容遮掉。
-     放好之後把下面這段換成 ![...](docs/images/xxx.png) -->
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/01-reminder.jpg" width="240" alt="Morning reminder and word of the day in the group chat"><br><sub>Morning reminder and word of the day</sub></td>
+    <td align="center"><img src="docs/images/02-ai-news.jpg" width="240" alt="Daily AI news card"><br><sub>Daily AI news</sub></td>
+    <td align="center"><img src="docs/images/03-form.jpg" width="240" alt="Daily check-in form"><br><sub>The form</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/04-habits.jpg" width="240" alt="Choosing two to five self-care habits"><br><sub>Each person picks their own habits</sub></td>
+    <td align="center"><img src="docs/images/05-privacy.jpg" width="240" alt="Divider marking fields that stay off the shared card"><br><sub>Fields below the line stay off the card</sub></td>
+    <td align="center"><img src="docs/images/06-private-note.jpg" width="240" alt="Private note field that is never shared"><br><sub>A note only the user can see</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/08-shared-card.jpg" width="240" alt="Summary card shared to the group chat"><br><sub>The summary card friends see</sub></td>
+    <td align="center"><img src="docs/images/07-history.jpg" width="240" alt="History page with weekly review and sleep trend"><br><sub>History and trends</sub></td>
+    <td></td>
+  </tr>
+</table>
 
 ---
 
@@ -74,6 +88,29 @@ record into a chat nobody asked it to.
 days with and against each habit, and hides any comparison where either group has fewer
 than three days or the difference is under five points. With small samples almost any
 difference is noise, and presenting noise as a finding is worse than showing nothing.
+
+---
+
+## Daily news digest
+
+Each morning a Vercel cron job collects the last 48 hours of articles from a set of RSS
+feeds (AI and health) and uses Claude to turn them into three short bilingual stories per
+category. Nothing is pushed: the stories are saved and returned when someone types 新聞 or
+AI新聞, and the 09:00 reminder carries one vocabulary word taken from that day's AI news.
+
+**Two models, two jobs.** Picking three stories from dozens of headlines is a simple task
+over a large input, so it goes to Claude Haiku. Writing the summaries is the opposite: a
+small input with strict rules on length and on which words count as vocabulary, which Haiku
+did not follow reliably. That step uses Claude Sonnet, which only ever sees three article
+excerpts, so the extra cost stays small.
+
+**Summaries are written from the article, not the teaser.** Working only from RSS
+descriptions, the model filled the second point with vague commentary and sometimes got
+facts wrong. Fetching the three chosen articles first makes each point a specific fact.
+
+**The news job runs an hour before the reminder.** Vercel's Hobby plan only guarantees that
+a cron job runs somewhere within its scheduled hour. With both jobs in the same hour, the
+reminder could run first and go out without a word of the day.
 
 ---
 
