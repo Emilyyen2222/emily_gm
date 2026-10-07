@@ -92,7 +92,7 @@ export function helpCard(url: string, inGroup = false) {
             row('本週', '看這週的摘要'),
             row('新聞', '今天的健康新知'),
             row('AI新聞', '今天的 AI 科技新聞'),
-            row('股市新聞', '今天的台股與美股新聞'),
+            row('股市新聞', '今天的台美股新聞'),
             row('其他問題', '直接問我'),
           ],
         },
