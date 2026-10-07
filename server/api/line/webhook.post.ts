@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { NewsKind } from '../../utils/newsSources'
 
 /**
  * LINE Webhook。這個端點唯一的實質工作，是把 bot 所在的群組 ID 記下來
@@ -69,7 +70,7 @@ export default defineEventHandler(async (event) => {
     // 今日單字卡片上「看今天的新聞」按鈕。新聞是公開內容，群組與一對一都回
     if (ev.type === 'postback' && ev.replyToken) {
       const data = String(ev.postback?.data ?? '')
-      const kind = data === NEWS_POSTBACK.ai ? 'ai' : data === NEWS_POSTBACK.health ? 'health' : null
+      const kind = (Object.keys(NEWS_POSTBACK) as NewsKind[]).find((k) => NEWS_POSTBACK[k] === data) ?? null
       if (kind) {
         try {
           await replyMessage(ev.replyToken, [await newsReply(kind)])

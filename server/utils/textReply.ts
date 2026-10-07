@@ -62,6 +62,7 @@ export async function buildTextReply(
   // 新聞是公開內容，群組裡被 @ 到也照樣回
   if (/^(新聞|健康新聞)$/.test(text)) return newsReply('health')
   if (/^AI\s*新聞$/i.test(text)) return newsReply('ai')
+  if (/^(股市|股票)新聞$/.test(text)) return newsReply('stock')
 
   if (/^AI\s*設定$/i.test(text)) {
     if (inGroup) return textMessage(AI_TEXT.settingsInGroup)

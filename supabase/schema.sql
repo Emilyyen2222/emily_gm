@@ -128,7 +128,7 @@ create index if not exists workouts_user_date_idx on workouts (user_id, workout_
 
 -- 每天 08:00 產生的新聞（公開內容，不含任何人的資料）
 create table if not exists news_digests (
-  kind        text not null check (kind in ('health', 'ai', 'quote')),
+  kind        text not null check (kind in ('health', 'ai', 'stock', 'quote')),
   digest_date date not null,
   content     jsonb not null,
   created_at  timestamptz default now(),

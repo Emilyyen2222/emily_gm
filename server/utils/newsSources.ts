@@ -7,7 +7,7 @@ import { XMLParser } from 'fast-xml-parser'
  * 候選越多，交給 AI 挑的 token 就越多，這是每天費用的大頭。
  */
 
-export type NewsKind = 'health' | 'ai'
+export type NewsKind = 'health' | 'ai' | 'stock'
 
 export interface NewsItem {
   source: string
@@ -42,19 +42,34 @@ const FEEDS: Record<NewsKind, { name: string; url: string }[]> = {
     { name: '科技新報', url: 'https://technews.tw/feed/' },
     { name: 'OpenAI', url: 'https://openai.com/news/rss.xml' },
   ],
+  // 英文的美股來源合格的不多，鉅亨網的美股分類補中文的；鉅亨網沒有 RSS，另外用它的 API（見 fetchCnyes）
+  stock: [
+    { name: 'Yahoo 股市', url: 'https://tw.stock.yahoo.com/rss?category=tw-market' },
+    { name: '經濟日報', url: 'https://money.udn.com/rssfeed/news/1001/5590?ch=money' },
+    { name: 'CNBC Markets', url: 'https://www.cnbc.com/id/20910258/device/rss/rss.html' },
+    { name: 'MarketWatch', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories' },
+  ],
 }
 
 /** 抓某一類的所有候選。單一來源失敗（被擋、逾時、改版）不影響其他來源 */
 export async function collectNews(kind: NewsKind): Promise<{ items: NewsItem[]; failed: string[] }> {
   const jobs = FEEDS[kind].map((f) => ({ name: f.name, run: () => fetchFeed(f.name, f.url) }))
   if (kind === 'ai') jobs.push({ name: 'Hacker News', run: fetchHackerNewsAi })
+  if (kind === 'stock') {
+    jobs.push({ name: '鉅亨網台股', run: () => fetchCnyes('tw_stock') })
+    jobs.push({ name: '鉅亨網美股', run: () => fetchCnyes('us_stock') })
+  }
 
   const results = await Promise.allSettled(jobs.map((j) => j.run()))
   const failed: string[] = []
   const items: NewsItem[] = []
   results.forEach((r, i) => {
-    if (r.status === 'fulfilled') items.push(...r.value)
-    else failed.push(jobs[i]!.name)
+    if (r.status === 'fulfilled') {
+      for (const it of r.value) {
+        const url = normalizeUrl(it.url)
+        if (url) items.push({ ...it, url })
+      }
+    } else failed.push(jobs[i]!.name)
   })
 
   // 同一篇可能同時出現在兩個來源
@@ -102,6 +117,26 @@ async function fetchHackerNewsAi(): Promise<NewsItem[]> {
     .map((h) => ({ source: 'Hacker News', title: h.title, summary: '', url: h.url, publishedAt: h.created_at_i * 1000 }))
 }
 
+/** 鉅亨網某一分類的新聞。內文是跳脫過的 HTML（&lt;p&gt;），clean 兩次：第一次還原成標籤，第二次拿掉標籤 */
+async function fetchCnyes(category: 'tw_stock' | 'us_stock'): Promise<NewsItem[]> {
+  const res = await $fetch<{ items: { data: any[] } }>(`https://api.cnyes.com/media/api/v1/newslist/category/${category}`, {
+    headers: HEADERS,
+    query: { limit: 30 },
+    timeout: 15000,
+  })
+  const since = Date.now() - WINDOW_MS
+  return res.items.data
+    .map((n) => ({
+      source: '鉅亨網',
+      title: clean(n.title, 200),
+      summary: clean(clean(n.content, 5000), SUMMARY_MAX),
+      url: `https://news.cnyes.com/news/id/${n.newsId}`,
+      publishedAt: Number(n.publishAt) * 1000,
+    }))
+    .filter((it) => it.title && it.publishedAt >= since)
+    .slice(0, PER_SOURCE)
+}
+
 /**
  * 抓原文的內文段落（前 2500 字），給第二階段寫摘要用。
  * 付費牆或擋爬蟲的網站會拿到很少的字，這時 AI 只能根據標題與簡介寫。
@@ -117,6 +152,20 @@ export async function fetchArticleText(url: string): Promise<string> {
       .slice(0, ARTICLE_MAX)
   } catch {
     return ''
+  }
+}
+
+/**
+ * 網址會放進卡片的「閱讀原文」按鈕，LINE 只要一個網址不合格就整則卡片拒收。
+ * 來源偶爾有怪網址（例如 HN 投稿者貼的網址結尾多一個反斜線），
+ * 這裡解析過一次轉成標準格式，不是 http/https 的直接丟掉
+ */
+function normalizeUrl(url: string): string | null {
+  try {
+    const u = new URL(url.trim().replace(/\\+$/, ''))
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null
+  } catch {
+    return null
   }
 }
 

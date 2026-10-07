@@ -9,7 +9,7 @@ const C = {
   border: '#EAD7BD',
 } as const
 
-const LABEL: Record<NewsKind, string> = { health: '健康新知', ai: 'AI 新聞' }
+const LABEL: Record<NewsKind, string> = { health: '健康新知', ai: 'AI 新聞', stock: '股市新聞' }
 
 const text = (value: string, opts: Record<string, unknown> = {}) => ({ type: 'text', text: value, wrap: true, color: C.brown, ...opts })
 
@@ -46,7 +46,7 @@ function vocabList(vocab: { en: string; zh: string }[]) {
 }
 
 /**
- * 新聞卡片：3 則左右滑。
+ * 新聞卡片：每則一張左右滑（健康 3 則，AI 與股市 10 則；LINE 輪播最多 12 張）。
  * 重點不加項目符號：中文深色大字＋英文淺色小字為一組，組與組之間拉大間距來分隔，
  * 省下符號的寬度讓每行多放幾個字。
  */
@@ -96,7 +96,7 @@ export function newsCarousel(kind: NewsKind, digestDate: string, stories: NewsSt
 }
 
 /** 今日單字卡片上「看今天的新聞」按鈕送出的 postback data */
-export const NEWS_POSTBACK: Record<NewsKind, string> = { health: 'news=health', ai: 'news=ai' }
+export const NEWS_POSTBACK: Record<NewsKind, string> = { health: 'news=health', ai: 'news=ai', stock: 'news=stock' }
 
 export interface TodayWord {
   kind: NewsKind
@@ -113,7 +113,7 @@ export interface TodayWord {
  * bot 會照規則不回應；postback 不受這個限制，按了就直接回覆新聞卡片。
  */
 export function wordCard(digestDate: string, w: TodayWord) {
-  const button = w.kind === 'ai' ? '看今天的 AI 新聞' : '看今天的健康新知'
+  const button = { health: '看今天的健康新知', ai: '看今天的 AI 新聞', stock: '看今天的股市新聞' }[w.kind]
   return {
     type: 'flex',
     altText: `今日單字：${w.word} ${w.meaning}`,

@@ -93,20 +93,27 @@ difference is noise, and presenting noise as a finding is worse than showing not
 
 ## Daily news digest
 
-Each morning a Vercel cron job collects the last 48 hours of articles from a set of RSS
-feeds (AI and health) and uses Claude to turn them into three short bilingual stories per
-category. Nothing is pushed: the stories are saved and returned when someone types 新聞 or
-AI新聞, and the 09:00 reminder carries one vocabulary word taken from that day's AI news.
+Each morning a Vercel cron job collects the last 48 hours of articles from RSS feeds and
+news APIs in three categories (health, AI, and Taiwan and US stocks) and uses Claude to turn
+them into short bilingual stories: three for health, ten each for AI and stocks. Nothing is
+pushed: the stories are saved and returned when someone types 新聞, AI新聞 or 股市新聞, and
+the 09:00 reminder carries one vocabulary word, rotating through the three categories. The
+three categories run in parallel and are written to the database in a single upsert; rows
+older than seven days are deleted.
 
-**Two models, two jobs.** Picking three stories from dozens of headlines is a simple task
-over a large input, so it goes to Claude Haiku. Writing the summaries is the opposite: a
-small input with strict rules on length and on which words count as vocabulary, which Haiku
-did not follow reliably. That step uses Claude Sonnet, which only ever sees three article
-excerpts, so the extra cost stays small.
+**Two models, two jobs.** Picking stories from dozens of headlines is a simple task over a
+large input, so it goes to Claude Haiku. Writing the summaries is the opposite: a small
+input with strict rules on length and on which words count as vocabulary, which Haiku did
+not follow reliably. That step uses Claude Sonnet, which only sees the chosen articles.
+
+**Naming each event before picking it.** The same story is often covered by several
+sources. A rule saying "pick only one" held at three stories but not at ten, where Haiku
+chose the same event two or three times. Asking it to write a one-line description of each
+event before giving the candidate number lets it spot the repeats itself.
 
 **Summaries are written from the article, not the teaser.** Working only from RSS
 descriptions, the model filled the second point with vague commentary and sometimes got
-facts wrong. Fetching the three chosen articles first makes each point a specific fact.
+facts wrong. Fetching the chosen articles first makes each point a specific fact.
 
 **The news job runs an hour before the reminder.** Vercel's Hobby plan only guarantees that
 a cron job runs somewhere within its scheduled hour. With both jobs in the same hour, the
