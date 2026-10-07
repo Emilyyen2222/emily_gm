@@ -69,7 +69,7 @@ export async function collectNews(kind: NewsKind): Promise<{ items: NewsItem[]; 
         const url = normalizeUrl(it.url)
         if (url) items.push({ ...it, url })
       }
-    } else failed.push(jobs[i]!.name)
+    } else failed.push(`${jobs[i]!.name}（${failReason(r.reason)}）`)
   })
 
   // 同一篇可能同時出現在兩個來源
@@ -153,6 +153,11 @@ export async function fetchArticleText(url: string): Promise<string> {
   } catch {
     return ''
   }
+}
+
+/** 失敗原因記進排程紀錄：有 HTTP 狀態碼就用狀態碼（403 是被擋、404 是網址換了），沒有就用錯誤訊息 */
+function failReason(err: any): string {
+  return String(err?.statusCode ?? err?.message ?? err).slice(0, 60)
 }
 
 /**
