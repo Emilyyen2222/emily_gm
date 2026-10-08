@@ -22,7 +22,7 @@ const PER_SOURCE = 8
 const SUMMARY_MAX = 100
 const ARTICLE_MAX = 2500
 
-// Reddit 會擋沒有 User-Agent 的請求
+// 有些網站會擋沒有 User-Agent 的請求
 const HEADERS = { 'User-Agent': 'Mozilla/5.0 (emily-liff news digest)' }
 
 const FEEDS: Record<NewsKind, { name: string; url: string }[]> = {
@@ -34,7 +34,6 @@ const FEEDS: Record<NewsKind, { name: string; url: string }[]> = {
     { name: 'Medical Xpress', url: 'https://medicalxpress.com/rss-feed/sleep-news/' },
   ],
   ai: [
-    { name: 'r/ClaudeAI', url: 'https://www.reddit.com/r/ClaudeAI/top/.rss?t=day' },
     { name: 'TechCrunch', url: 'https://techcrunch.com/category/artificial-intelligence/feed/' },
     { name: 'The Verge', url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml' },
     { name: 'iThome', url: 'https://www.ithome.com.tw/rss' },
@@ -82,7 +81,7 @@ const parser = new XMLParser({ ignoreAttributes: false })
 async function fetchFeed(source: string, url: string): Promise<NewsItem[]> {
   const xml = await $fetch<string>(url, { headers: HEADERS, responseType: 'text', timeout: 15000 })
   const doc = parser.parse(xml)
-  // RSS 是 rss.channel.item，Atom（Reddit）是 feed.entry
+  // RSS 是 rss.channel.item，Atom（The Verge）是 feed.entry
   const raw = doc?.rss?.channel?.item ?? doc?.feed?.entry ?? []
   const entries: any[] = Array.isArray(raw) ? raw : [raw]
   const since = Date.now() - WINDOW_MS
