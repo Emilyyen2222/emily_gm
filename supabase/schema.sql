@@ -150,6 +150,22 @@ create table if not exists squat_members (
 );
 create index if not exists squat_members_user_idx on squat_members (user_id);
 
+-- 從 iPhone 健康 App 同步的月經日期（一列 = 在經期的某一天），見 migrations/023
+create table if not exists period_days (
+  user_id    text not null,
+  day        date not null,
+  synced_at  timestamptz default now(),
+  primary key (user_id, day)
+);
+
+-- 捷徑用的同步碼，只存雜湊
+create table if not exists health_sync_tokens (
+  user_id      text primary key,
+  token_hash   text not null unique,
+  created_at   timestamptz default now(),
+  last_used_at timestamptz
+);
+
 -- 每天 08:00 產生的新聞（公開內容，不含任何人的資料）
 create table if not exists news_digests (
   kind        text not null check (kind in ('health', 'ai', 'stock', 'quote')),
@@ -170,3 +186,5 @@ alter table news_digests enable row level security;
 alter table workouts enable row level security;
 alter table squat_checkins enable row level security;
 alter table squat_members  enable row level security;
+alter table period_days        enable row level security;
+alter table health_sync_tokens enable row level security;

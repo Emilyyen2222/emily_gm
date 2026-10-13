@@ -11,6 +11,7 @@ import {
   type RecordsResponse,
   type SubmitRecordResponse,
 } from '#shared/types/record'
+import type { PeriodStatusResponse } from '#shared/types/period'
 import type { SquatTodayResponse } from '#shared/types/squat'
 import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
 import { buildExpenseFlexMessage, expenseCardTitle } from '#shared/utils/expenseCard'
@@ -21,6 +22,14 @@ const { ready, initError, displayName, canShareToChat, isOneToOne, inClient, con
 const squat = ref<SquatTodayResponse | null>(null)
 /** 最近 7 天沒蹲過的人不顯示，不讓從沒蹲過的人每天看到 0/100 */
 const showSquat = computed(() => Boolean(squat.value?.recent))
+
+/** 月經週期，來自健康 App。沒設定過同步的人整區不顯示 */
+const period = ref<PeriodStatusResponse | null>(null)
+const periodText = computed(() => {
+  const p = period.value
+  if (!p || p.phase === 'none' || p.day === null) return '最近 90 天沒有紀錄'
+  return p.phase === 'period' ? `經期第 ${p.day} 天` : `週期第 ${p.day} 天`
+})
 
 /** 不能分享時要說明原因 —— 勾選框默默消失，使用者無從得知為什麼 */
 const noShareReason = computed(() => {
@@ -148,6 +157,11 @@ onMounted(async () => {
     } catch {
       expenseLabel.value = null
     }
+
+    // 月經週期讀不到就不顯示，不影響表單
+    $fetch<PeriodStatusResponse>('/api/period/me', { headers: { 'x-liff-id-token': idToken } })
+      .then((d) => (period.value = d))
+      .catch(() => (period.value = null))
 
     // 深蹲進度讀不到就不顯示，不影響表單
     $fetch<SquatTodayResponse>('/api/squats/today', { headers: { 'x-liff-id-token': idToken } })
@@ -421,6 +435,11 @@ async function submit(share: boolean) {
               placeholder="36.8"
             />
           </div>
+        </FormSection>
+
+        <FormSection v-if="period?.connected" variant="aside" title="月經">
+          <p class="text-body font-medium text-brand-brown">{{ periodText }}</p>
+          <p class="mt-1 text-caption text-brand-brown-light">來自健康 App，要修改請到健康 App</p>
         </FormSection>
 
         <FormSection variant="aside" title="只給自己的" hint="這一格不會出現在卡片上，也不會有人看到">
