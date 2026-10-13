@@ -82,7 +82,9 @@ create table if not exists users (
   ai_consent_at       timestamptz,
   ai_pending_question text,
   -- 自己新增過的訓練動作
-  custom_exercises    text[]
+  custom_exercises    text[],
+  -- 深蹲每天目標幾下，null = 預設 100
+  squat_goal          smallint check (squat_goal > 0 and squat_goal <= 1000)
 );
 
 -- AI 問答每人每天的使用次數
@@ -126,6 +128,25 @@ create table if not exists workouts (
 );
 create index if not exists workouts_user_date_idx on workouts (user_id, workout_date desc);
 
+-- 深蹲聊天打卡：一次一筆，不放進 workouts（訓練頁存檔會整天取代），見 migrations/021
+create table if not exists squat_checkins (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    text not null,
+  squat_date date not null,
+  reps       integer not null check (reps > 0 and reps <= 1000),
+  created_at timestamptz default now()
+);
+create index if not exists squat_checkins_user_date_idx on squat_checkins (user_id, squat_date desc);
+
+-- 誰在哪個群組加入了深蹲挑戰。綁群組，看板才不會出現在本人沒加入的群組
+create table if not exists squat_members (
+  chat_id   text not null,
+  user_id   text not null,
+  joined_at timestamptz default now(),
+  primary key (chat_id, user_id)
+);
+create index if not exists squat_members_user_idx on squat_members (user_id);
+
 -- 每天 08:00 產生的新聞（公開內容，不含任何人的資料）
 create table if not exists news_digests (
   kind        text not null check (kind in ('health', 'ai', 'stock', 'quote')),
@@ -144,3 +165,5 @@ alter table expenses enable row level security;
 alter table ai_usage enable row level security;
 alter table news_digests enable row level security;
 alter table workouts enable row level security;
+alter table squat_checkins enable row level security;
+alter table squat_members  enable row level security;

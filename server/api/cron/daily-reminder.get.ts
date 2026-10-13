@@ -29,6 +29,17 @@ export default defineEventHandler(async (event) => {
       if (weekly) messages.push(weekly)
     }
 
+    // 深蹲看板只發到群組，內容只有「在這個群組」加入挑戰、而且確認還在群組裡的人（見 buildSquatBoard）。
+    // 一對一與多人聊天室（room）一律不附。看板出錯不影響提醒照常發
+    if (chat.chatType === 'group') {
+      try {
+        const board = await buildSquatBoard(chat.chatId, addDays(taipeiToday(), -1))
+        if (board) messages.push(board)
+      } catch {
+        // 少一個看板，提醒照常發
+      }
+    }
+
     // 今日單字跟在提醒卡片後面，同一次 push 不多用額度。
     // 當天 08:00 的新聞沒產生就不附，提醒照常發
     const wordMessage = await loadWord()

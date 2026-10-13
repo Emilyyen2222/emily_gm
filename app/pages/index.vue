@@ -11,10 +11,16 @@ import {
   type RecordsResponse,
   type SubmitRecordResponse,
 } from '#shared/types/record'
+import type { SquatTodayResponse } from '#shared/types/squat'
 import { buildDailyFlexMessage } from '#shared/utils/flexMessage'
 import { buildExpenseFlexMessage, expenseCardTitle } from '#shared/utils/expenseCard'
 
 const { ready, initError, displayName, canShareToChat, isOneToOne, inClient, contextType, chatId, init, getIdToken, sendToChat, close } = useLiff()
+
+/** 今天的深蹲進度。資料在訓練頁與聊天打卡，這裡只顯示，存表單不會動到它 */
+const squat = ref<SquatTodayResponse | null>(null)
+/** 從沒蹲過、也沒加入挑戰的人不顯示，不讓他每天看到 0/100 */
+const showSquat = computed(() => Boolean(squat.value && (squat.value.joined || squat.value.total > 0)))
 
 /** 不能分享時要說明原因 —— 勾選框默默消失，使用者無從得知為什麼 */
 const noShareReason = computed(() => {
@@ -142,6 +148,11 @@ onMounted(async () => {
     } catch {
       expenseLabel.value = null
     }
+
+    // 深蹲進度讀不到就不顯示，不影響表單
+    $fetch<SquatTodayResponse>('/api/squats/today', { headers: { 'x-liff-id-token': idToken } })
+      .then((d) => (squat.value = d))
+      .catch(() => (squat.value = null))
 
     const data = await $fetch<RecordsResponse>('/api/records/me', {
       query: { days: 1 },
@@ -485,6 +496,10 @@ async function submit(share: boolean) {
 
         <p v-if="noShareReason" class="rounded-2xl border border-brand-border bg-white p-4 text-caption text-brand-brown-light">
           {{ noShareReason }}
+        </p>
+
+        <p v-if="showSquat && squat" class="text-center text-body text-brand-brown">
+          今天深蹲 {{ squat.total }}/{{ squat.goal }}
         </p>
 
         <div class="flex justify-center gap-6">

@@ -113,6 +113,7 @@ export default defineEventHandler(async (event) => {
       const text = stripMentions(String(ev.message.text ?? ''), mentionees)
       const reply = await buildTextReply(text, source.userId, source.groupId ?? source.roomId, {
         addressed: isDirect || mentioned,
+        groupId: source.groupId,
       })
 
       if (reply) {
@@ -135,7 +136,28 @@ export default defineEventHandler(async (event) => {
 
     if (ev.type === 'leave') {
       await supabase.from('chats').update({ active: false }).eq('chat_id', chatId)
-      handled.push('leave: 已標記為非活躍')
+      // bot 被踢出群組：這個群組的深蹲挑戰整個停掉，之後重新邀請要重新加入
+      try {
+        await removeSquatMembers(chatId)
+        handled.push('leave: 已標記為非活躍，已清除深蹲挑戰成員')
+      } catch (err: any) {
+        handled.push(`leave: 已標記為非活躍，清除深蹲挑戰成員失敗 ${describe(err)}`)
+      }
+      continue
+    }
+
+    // 有人離開群組：他在這個群組的深蹲挑戰也一起退出。
+    // 這個通知有可能漏收，所以早上的看板發送前還會再向 LINE 確認一次
+    if (ev.type === 'memberLeft') {
+      const userIds = ((ev.left?.members ?? []) as any[]).map((m) => m?.userId).filter((id): id is string => typeof id === 'string')
+      if (userIds.length) {
+        try {
+          await removeSquatMembers(chatId, userIds)
+          handled.push(`memberLeft: 已清除 ${userIds.length} 人的深蹲挑戰`)
+        } catch (err: any) {
+          handled.push(`memberLeft: 清除深蹲挑戰失敗 ${describe(err)}`)
+        }
+      }
       continue
     }
 

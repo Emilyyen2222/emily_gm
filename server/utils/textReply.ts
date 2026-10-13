@@ -1,6 +1,7 @@
 import type { NewsKind } from './newsSources'
 import type { NewsStory } from './newsDigest'
 import { rowToRecord } from './records'
+import { parseSquatCommand, squatProgressText, SQUAT_GOAL_MAX, type SquatCommand } from '../../shared/types/squat'
 
 /**
  * 把使用者的文字訊息對應到回覆卡片。
@@ -17,8 +18,20 @@ export async function buildTextReply(
   rawText: string,
   userId: string | undefined,
   chatId: string | undefined,
-  opts: { addressed: boolean },
+  opts: { addressed: boolean; groupId?: string },
 ): Promise<unknown | null> {
+  // 深蹲打卡是唯一不用 @ 的指令：只認「深蹲 60」這種完整格式，
+  // 回覆也只有打卡的人自己的進度，送回他打字的這個聊天室
+  const squat = parseSquatCommand(rawText)
+  if (squat && userId && (opts.addressed || squat.type === 'checkin')) {
+    try {
+      return await squatReply(squat, userId, chatId, opts.groupId)
+    } catch {
+      // 不能靜悄悄失敗：沒回話的話，打卡的人會以為記到了
+      return textMessage('沒記到，請再打一次')
+    }
+  }
+
   // 群組裡沒被 @ 到就徹底安靜
   if (!opts.addressed) return null
 
@@ -84,4 +97,54 @@ export async function buildTextReply(
 export async function newsReply(kind: NewsKind): Promise<unknown> {
   const latest = await loadLatestDigest<NewsStory[]>(kind, taipeiToday())
   return latest?.content.length ? newsCarousel(kind, latest.date, latest.content) : textMessage(NEWS_EMPTY)
+}
+
+/**
+ * 深蹲指令的回覆。加入、退出只在群組有效（綁的是這個群組），
+ * 一對一打「加入深蹲」只說明要去群組加入。
+ */
+async function squatReply(cmd: SquatCommand, userId: string, chatId: string | undefined, groupId: string | undefined) {
+  const today = taipeiToday()
+  // 群組裡的回覆帶名字，取自這個群組的成員資料；一對一不帶
+  const name = chatId ? ((await getProfile(userId, chatId))?.displayName ?? null) : null
+  const who = name ? `${name} ` : '你'
+
+  switch (cmd.type) {
+    case 'checkin': {
+      await addSquatCheckin(userId, cmd.reps, today)
+      return textMessage(squatProgressText({ name, ...(await getSquatProgress(userId, today)) }))
+    }
+    case 'checkin-not-number':
+      return textMessage('要用數字記，例如「深蹲 60」')
+    case 'undo': {
+      const removed = await undoSquatCheckin(userId, today)
+      if (removed === null) return textMessage('今天沒有從聊天記的深蹲。訓練頁記的請到訓練頁修改')
+      const { total, goal } = await getSquatProgress(userId, today)
+      return textMessage(`已刪掉剛才的 ${removed} 下，今天 ${total}/${goal}`)
+    }
+    case 'goal': {
+      if (cmd.goal === null) return textMessage(`目標要是 1 到 ${SQUAT_GOAL_MAX} 之間的數字，例如「深蹲目標 50」`)
+      await setSquatGoal(userId, cmd.goal)
+      return textMessage(`每天目標改成 ${cmd.goal} 下`)
+    }
+    case 'join': {
+      if (!groupId) {
+        return textMessage('深蹲挑戰要在群組裡加入：在群組 @我 打「加入深蹲」，看板只會出現在那個群組。\n在這裡打「深蹲 60」也可以記錄。')
+      }
+      if (cmd.goal !== null) await setSquatGoal(userId, cmd.goal)
+      const already = await joinSquat(groupId, userId)
+      const goal = cmd.goal ?? (await getSquatGoals([userId]))[userId]!
+      if (already) {
+        return textMessage(cmd.goal !== null ? `${who}的每天目標改成 ${goal} 下` : `${who}已經在深蹲挑戰裡了，每天目標 ${goal} 下`)
+      }
+      return textMessage(
+        `${who}加入了深蹲挑戰，每天目標 ${goal} 下。\n每天早上的提醒會列出前一天有蹲的人和次數，訓練頁記的深蹲也算在內。\n記錄直接打「深蹲 60」，不用 @ 我。`,
+      )
+    }
+    case 'leave': {
+      if (!groupId) return textMessage('你還沒在這個群組加入深蹲挑戰')
+      const was = await leaveSquat(groupId, userId)
+      return textMessage(was ? `${who}退出了深蹲挑戰，之後早上的提醒不會再列出你` : '你還沒在這個群組加入深蹲挑戰')
+    }
+  }
 }

@@ -11,6 +11,7 @@ import {
   type WorkoutMax,
   type WorkoutResponse,
 } from '#shared/types/workout'
+import type { SquatTodayResponse } from '#shared/types/squat'
 import { buildWorkoutFlexMessage } from '#shared/utils/workoutCard'
 
 const { ready, initError, displayName, canShareToChat, isOneToOne, init, getIdToken, sendToChat } = useLiff()
@@ -24,6 +25,8 @@ const shared = ref(false)
 const customExercises = ref<string[]>([])
 const lastUnits = ref<Record<string, WeightUnit>>({})
 const history = ref<WorkoutMax[]>([])
+/** 今天從聊天記的深蹲。存在另一張表，這個頁面存檔不會動到它，所以只顯示、不能改 */
+const squatChatTotal = ref(0)
 
 const { bottomBar, paddingStyle } = useBottomBarPadding()
 
@@ -59,6 +62,11 @@ async function load(target?: string) {
     customExercises.value = data.customExercises
     lastUnits.value = data.lastUnits
     history.value = data.history
+    // 讀不到就不顯示，不影響訓練紀錄
+    squatChatTotal.value = 0
+    $fetch<SquatTodayResponse>('/api/squats/today', { headers: { 'x-liff-id-token': idToken } })
+      .then((d) => (squatChatTotal.value = d.chatTotal))
+      .catch(() => {})
   } catch (err: any) {
     // 讀不到就要明講：否則使用者以為是空的，存下去會把那天原本的紀錄蓋掉
     loadError.value = err?.data?.statusMessage ?? err?.message ?? '讀取失敗，請重新開啟頁面'
@@ -204,6 +212,11 @@ const curves = computed(() => {
             @change="onDateChange"
           />
         </label>
+
+        <div v-if="date === today && squatChatTotal > 0" class="rounded-2xl border border-brand-border bg-white p-4">
+          <p class="text-body text-brand-brown">聊天記的深蹲：今天 {{ squatChatTotal }} 下</p>
+          <p class="mt-1 text-caption text-brand-brown-light">打錯了在聊天室打「取消深蹲」</p>
+        </div>
 
         <section
           v-for="ex in exercises"
