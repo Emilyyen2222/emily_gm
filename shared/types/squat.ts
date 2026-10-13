@@ -22,8 +22,8 @@ export interface SquatTodayResponse {
   /** 只有聊天打卡的部分。訓練頁顯示用，那裡改不到這些 */
   chatTotal: number
   goal: number
-  /** 加入過任何群組的挑戰。沒加入、今天也沒蹲的人不顯示進度 */
-  joined: boolean
+  /** 最近 7 天有沒有蹲過。從沒蹲過的人不顯示進度，不讓他每天看到 0/100 */
+  recent: boolean
 }
 
 export type SquatCommand =
@@ -31,8 +31,6 @@ export type SquatCommand =
   /** 「深蹲六十」這種：看得出是想打卡，但不是數字 */
   | { type: 'checkin-not-number' }
   | { type: 'undo' }
-  | { type: 'join'; goal: number | null }
-  | { type: 'leave' }
   | { type: 'goal'; goal: number | null }
 
 /**
@@ -51,15 +49,6 @@ export function parseSquatCommand(raw: string): SquatCommand | null {
   if (/^深蹲\s*[零〇一二兩三四五六七八九十百千]+\s*[下次]?$/.test(text)) return { type: 'checkin-not-number' }
 
   if (/^取消深蹲$/.test(text)) return { type: 'undo' }
-  if (/^退出深蹲(挑戰)?$/.test(text)) return { type: 'leave' }
-
-  const join = text.match(/^加入深蹲(?:挑戰)?\s*(\d+)?\s*[下次]?$/)
-  if (join) {
-    if (join[1] === undefined) return { type: 'join', goal: null }
-    const goal = parseGoal(join[1])
-    // 數字不對就不加入，回「目標要是 1 到 1000」讓他重打
-    return goal ? { type: 'join', goal } : { type: 'goal', goal: null }
-  }
 
   const goal = text.match(/^深蹲目標\s*(\S+?)\s*[下次]?$/)
   if (goal) return { type: 'goal', goal: parseGoal(goal[1]!) }
@@ -98,21 +87,24 @@ export function squatProgressText(opts: { name: string | null; total: number; go
 
 export interface SquatBoardMember {
   name: string
+  /** 昨天有沒有在這個群組打卡。沒有的不列名字，但近 7 天的合計照算 */
+  checkedInHere: boolean
   goal: number
   /** 日期 → 當天次數。至少要涵蓋近 7 天，算連續天數則要更久 */
   daily: Record<string, number>
 }
 
 /**
- * 早上提醒附的看板文字。members 必須「已經」只剩這個群組裡加入、而且確認還在群組的人。
- * 只列昨天有蹲的人，沒蹲的不列；昨天沒有任何人蹲就回 null，不附看板。
- * 近 7 天的合計算全部 members（包括昨天沒蹲、所以沒列出名字的人）。
+ * 早上提醒附的看板文字。members 必須「已經」只剩近 7 天在這個群組打過卡、而且確認還在群組的人。
+ * 只列昨天在這個群組打過卡的人；沒有就回 null，不附看板。
+ * 次數是那個人昨天的總數（含一對一打卡與訓練頁），跟打卡時 bot 在群組回的數字一致。
+ * 近 7 天的合計算全部 members（包括昨天沒打卡、所以沒列出名字的人）。
  */
 export function squatBoardText(members: SquatBoardMember[], yesterday: string): string | null {
   const lines: string[] = []
   for (const m of members) {
     const total = m.daily[yesterday] ?? 0
-    if (total <= 0) continue
+    if (!m.checkedInHere || total <= 0) continue
     if (total < m.goal) {
       lines.push(`${m.name} ${total}/${m.goal}`)
       continue

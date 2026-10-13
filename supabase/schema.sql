@@ -134,11 +134,14 @@ create table if not exists squat_checkins (
   user_id    text not null,
   squat_date date not null,
   reps       integer not null check (reps > 0 and reps <= 1000),
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  -- 在哪個聊天室打的卡，一對一是 null。看板只列昨天在該群組打過卡的人，見 migrations/022
+  chat_id    text
 );
 create index if not exists squat_checkins_user_date_idx on squat_checkins (user_id, squat_date desc);
+create index if not exists squat_checkins_chat_date_idx on squat_checkins (chat_id, squat_date);
 
--- 誰在哪個群組加入了深蹲挑戰。綁群組，看板才不會出現在本人沒加入的群組
+-- 已停用（022 起看板改看在群組打卡的人），保留不刪
 create table if not exists squat_members (
   chat_id   text not null,
   user_id   text not null,

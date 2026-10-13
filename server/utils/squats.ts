@@ -71,9 +71,24 @@ export async function getSquatProgress(userId: string, today: string): Promise<{
   return { total: days[today] ?? 0, goal, streak: squatStreak(days, goal, today) }
 }
 
-export async function addSquatCheckin(userId: string, reps: number, today: string): Promise<void> {
-  const { error } = await useSupabase().from('squat_checkins').insert({ user_id: userId, squat_date: today, reps })
+/**
+ * 記一次打卡。chatId 是打卡的聊天室，一對一傳 null。
+ * 回傳這是不是此人第一次在這個聊天室打卡（第一次要說明隔天會上看板）
+ */
+export async function addSquatCheckin(userId: string, reps: number, today: string, chatId: string | null): Promise<boolean> {
+  const supabase = useSupabase()
+  let first = false
+  if (chatId) {
+    const { count } = await supabase
+      .from('squat_checkins')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('chat_id', chatId)
+    first = !count
+  }
+  const { error } = await supabase.from('squat_checkins').insert({ user_id: userId, squat_date: today, reps, chat_id: chatId })
   if (error) throw new Error(`記錄深蹲失敗：${error.message}`)
+  return first
 }
 
 /** 刪掉今天最後一次聊天打卡，回傳刪掉的次數；今天沒有就回 null */
@@ -99,63 +114,38 @@ export async function getSquatChatTotal(userId: string, today: string): Promise<
   return (data ?? []).reduce((sum, c) => sum + c.reps, 0)
 }
 
-/** 加入某個群組的挑戰。回傳原本是不是已經加入了 */
-export async function joinSquat(chatId: string, userId: string): Promise<boolean> {
-  const supabase = useSupabase()
-  const { data } = await supabase.from('squat_members').select('user_id').eq('chat_id', chatId).eq('user_id', userId).maybeSingle()
-  if (data) return true
-  const { error } = await supabase.from('squat_members').insert({ chat_id: chatId, user_id: userId })
-  if (error) throw new Error(`加入失敗：${error.message}`)
-  return false
-}
-
-/** 退出某個群組的挑戰。回傳原本有沒有加入 */
-export async function leaveSquat(chatId: string, userId: string): Promise<boolean> {
-  const { data, error } = await useSupabase()
-    .from('squat_members')
-    .delete()
-    .eq('chat_id', chatId)
-    .eq('user_id', userId)
-    .select('user_id')
-  if (error) throw new Error(`退出失敗：${error.message}`)
-  return Boolean(data?.length)
-}
-
-/** 有人離開群組，或 bot 被踢出群組（不帶 userIds = 整個群組）時清掉加入紀錄 */
-export async function removeSquatMembers(chatId: string, userIds?: string[]): Promise<void> {
-  let query = useSupabase().from('squat_members').delete().eq('chat_id', chatId)
-  if (userIds) query = query.in('user_id', userIds)
-  const { error } = await query
-  if (error) throw new Error(`清除深蹲挑戰成員失敗：${error.message}`)
-}
-
-/** 有沒有在任何群組加入挑戰。只用來決定每日表單要不要顯示進度，不回傳是哪些群組 */
-export async function hasSquatMembership(userId: string): Promise<boolean> {
-  const { count } = await useSupabase()
-    .from('squat_members')
-    .select('user_id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-  return Boolean(count)
+/** 最近 7 天（含今天）有沒有蹲過。只用來決定每日表單要不要顯示進度 */
+export async function hasRecentSquat(userId: string, today: string): Promise<boolean> {
+  const daily = await getSquatDaily([userId], addDays(today, -6), today)
+  return Object.values(daily[userId] ?? {}).some((n) => n > 0)
 }
 
 /**
  * 某個群組早上的看板。
  *
- * 只查「在這個群組」加入的人，再逐一向 LINE 確認他現在還在這個群組：
- * 離開群組的通知有可能漏收，不能只靠 squat_members。查不到或查詢出錯都直接排除 ——
- * 寧可少列一個人，也不能把資料送到他已經不在的群組。
- * 名字也取自這個群組的成員資料，不用其他地方存的暱稱。
+ * 只看「在這個群組」打過卡的人：近 7 天在這裡打過卡的算進合計，昨天在這裡打過卡的才列名字。
+ * 在一對一或其他群組打卡，不會讓人出現在這個群組。
+ * 再逐一向 LINE 確認他現在還在這個群組 —— 查不到或查詢出錯都直接排除，
+ * 寧可少列一個人，也不能把資料送到他已經不在的群組。名字也取自這個群組的成員資料。
  */
 export async function buildSquatBoard(chatId: string, yesterday: string): Promise<unknown | null> {
-  const { data: rows, error } = await useSupabase().from('squat_members').select('user_id').eq('chat_id', chatId)
-  if (error) throw new Error(`讀取深蹲挑戰成員失敗：${error.message}`)
-  if (!rows?.length) return null
+  const { data: rows, error } = await useSupabase()
+    .from('squat_checkins')
+    .select('user_id, squat_date')
+    .eq('chat_id', chatId)
+    .gte('squat_date', addDays(yesterday, -6))
+    .lte('squat_date', yesterday)
+  if (error) throw new Error(`讀取深蹲打卡失敗：${error.message}`)
+  if (!rows?.some((r) => r.squat_date === yesterday)) return null
+
+  const checkedInYesterday = new Set(rows.filter((r) => r.squat_date === yesterday).map((r) => r.user_id as string))
+  const userIds = [...new Set(rows.map((r) => r.user_id as string))]
 
   const verified = (
     await Promise.all(
-      rows.map(async (r) => {
-        const profile = await getProfile(r.user_id, chatId)
-        return profile ? { userId: r.user_id as string, name: profile.displayName } : null
+      userIds.map(async (userId) => {
+        const profile = await getProfile(userId, chatId)
+        return profile ? { userId, name: profile.displayName } : null
       }),
     )
   ).filter((m) => m !== null)
@@ -166,7 +156,12 @@ export async function buildSquatBoard(chatId: string, yesterday: string): Promis
     getSquatDaily(ids, addDays(yesterday, -SQUAT_STREAK_LOOKBACK), yesterday),
     getSquatGoals(ids),
   ])
-  const members: SquatBoardMember[] = verified.map((m) => ({ name: m.name, goal: goals[m.userId]!, daily: daily[m.userId] ?? {} }))
+  const members: SquatBoardMember[] = verified.map((m) => ({
+    name: m.name,
+    checkedInHere: checkedInYesterday.has(m.userId),
+    goal: goals[m.userId]!,
+    daily: daily[m.userId] ?? {},
+  }))
 
   const text = squatBoardText(members, yesterday)
   return text ? textMessage(text) : null

@@ -19,8 +19,8 @@ const { ready, initError, displayName, canShareToChat, isOneToOne, inClient, con
 
 /** 今天的深蹲進度。資料在訓練頁與聊天打卡，這裡只顯示，存表單不會動到它 */
 const squat = ref<SquatTodayResponse | null>(null)
-/** 從沒蹲過、也沒加入挑戰的人不顯示，不讓他每天看到 0/100 */
-const showSquat = computed(() => Boolean(squat.value && (squat.value.joined || squat.value.total > 0)))
+/** 最近 7 天沒蹲過的人不顯示，不讓從沒蹲過的人每天看到 0/100 */
+const showSquat = computed(() => Boolean(squat.value?.recent))
 
 /** 不能分享時要說明原因 —— 勾選框默默消失，使用者無從得知為什麼 */
 const noShareReason = computed(() => {
