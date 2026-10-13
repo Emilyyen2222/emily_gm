@@ -20,10 +20,11 @@ export async function buildTextReply(
   chatId: string | undefined,
   opts: { addressed: boolean; groupId?: string },
 ): Promise<unknown | null> {
-  // 深蹲打卡是唯一不用 @ 的指令：只認「深蹲 100」這種完整格式，
-  // 回覆也只有打卡的人自己的進度，送回他打字的這個聊天室
+  // 深蹲指令（打卡、取消深蹲、深蹲目標）在群組不用 @：都要整句完全符合才觸發，
+  // 回覆也只有打的人自己的進度，送回他打字的這個聊天室。
+  // 「深蹲六十」這種格式錯的例外：群組裡分不出是打錯還是在聊天，沒 @ 就不提示
   const squat = parseSquatCommand(rawText)
-  if (squat && userId && (opts.addressed || squat.type === 'checkin')) {
+  if (squat && userId && (opts.addressed || squat.type !== 'checkin-not-number')) {
     try {
       return await squatReply(squat, userId, chatId, opts.groupId)
     } catch {
