@@ -570,7 +570,7 @@ async function submit(share: boolean) {
         </p>
 
         <p v-else-if="canShareToChat" class="mt-2 text-center text-caption text-brand-brown-light">
-          除了「只給自己的」和花費，其他都會出現在卡片上
+          分隔線以下的都不會出現在卡片上
         </p>
         <p v-else-if="noShareReason" class="mt-2 text-center text-caption text-brand-brown-light">
           {{ noShareReason }}
